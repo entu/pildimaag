@@ -1,6 +1,7 @@
-// var nomnom = require('nomnom')
+var nomnom     = require('nomnom')
 // var nomnom = require('nomnom')
 
+console.log(process.argv)
 
 var pjson = require('./package.json')
 
@@ -46,8 +47,20 @@ console.log(opts)
 // }).listen(8080);
 
 
-// docker build -t mitselek/pildimaag ~/Documents/github/pildimaag/
-// docker run -d -v ~/Documents/github/pildimaag/:/pildimaag/ --name puhh mitselek/pildimaag
-// docker logs -f puhh
-// docker kill puhh
-// docker kill puhh && docker start puhh && docker logs -f puhh
+/*
+BUILD
+docker build -t mitselek/pildimaag ~/Documents/github/pildimaag/
+
+RUN and LOG
+docker run -d -v ~/Documents/github/pildimaag/:/pildimaag/ --name puhh mitselek/pildimaag:latest arg_1 arg_2
+docker logs -f puhh
+
+RESTART and LOG
+docker kill puhh
+docker start puhh
+docker logs -f puhh
+
+CLEANUP
+docker kill puhh
+docker rm puhh
+*/

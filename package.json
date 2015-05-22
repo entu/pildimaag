@@ -2,9 +2,6 @@
   "name": "pildimaag",
   "version": "0.0.0",
   "private": true,
-  "scripts": {
-    "start": "server.js"
-  },
   "dependencies": {
     "request": "^2.55.0",
     "imagemagick": "0.1.3",
