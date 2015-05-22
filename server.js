@@ -1,11 +1,10 @@
-var nomnom = require('nomnom')
+// var nomnom = require('nomnom')
+// var nomnom = require('nomnom')
 
-console.log('Tere')
-console.log('Tere')
 
-var pjson = require('./package.json');
+var pjson = require('./package.json')
 
-console.log(pjson.name + '.' + pjson.version);
+console.log(pjson.name + '.' + pjson.version)
 
 var opts = nomnom.options({
     port: {
@@ -22,6 +21,9 @@ var opts = nomnom.options({
     },
 }).parse()
 
+console.log(opts)
+console.log(opts)
+console.log(opts)
 console.log(opts)
 
 // var http = require("http");

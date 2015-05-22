@@ -17,4 +17,4 @@ RUN \
 RUN \
     ln -s /usr/bin/nodejs /usr/bin/node
 
-ENTRYPOINT nodemon /pildimaag/server.js
+ENTRYPOINT nodemon -L /pildimaag/server.js
