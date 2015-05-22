@@ -14,4 +14,7 @@ RUN \
     cd pildimaag/ && \
     npm install
 
-ENTRYPOINT nodemon /pildimaag/
+RUN \
+    ln -s /usr/bin/nodejs /usr/bin/node
+
+ENTRYPOINT nodemon /pildimaag/server.js
