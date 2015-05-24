@@ -27,9 +27,13 @@ console.log(opts)
 var EntuLib = entulib(opts.USER_ID, opts.API_KEY, opts.HOSTNAME)
 var LIMIT = 10
 var result_counter = 0
+var connection_counter = 0
 
 var fetchNextPage = function fetchNextPage(page) {
+
+    connection_counter ++
     EntuLib.findEntity('eksponaat', '00000', LIMIT, page, function findEntityCB(err, result) {
+        connection_counter --
         if (err) {
             console.log('Can\'t reach Entu', err, result)
             process.exit(99)
@@ -37,14 +41,27 @@ var fetchNextPage = function fetchNextPage(page) {
         else if (result.error !== undefined) {
             console.log (result.error, 'Failed to fetch from Entu.')
         } else {
+
+            if (LIMIT * page < result.count) {
+                fetchNextPage(page+1)
+            } else {
+                console.log('Finished.')
+                // process.exit(0)
+                // setTimeout(function() { fetchNextPage(1) }, 1000 * 10 * 1 * 1)
+                setTimeout(function() { fetchNextPage(1) }, 1000 * 60 * 60 * 24)
+            }
+
             console.log('Fetched ' + result.result.length + '/' + result.count
                 + ' results on page ' + page + '/' + Math.ceil(result.count / LIMIT))
             // console.log(result.result)
             result.result.forEach(function entityLoop(entity) {
-                result_counter++
-                console.log(result_counter + ':', entity.id)
+                result_counter ++
+                // console.log(result_counter + ':', entity.id)
 
+                connection_counter ++
                 EntuLib.getEntity(entity.id, function findEntityCB(err, result) {
+                    connection_counter --
+                    console.log('#:' + connection_counter)
                     if (err) {
                         console.log('Can\'t reach Entu', err, result)
                         process.exit(99)
@@ -61,18 +78,8 @@ var fetchNextPage = function fetchNextPage(page) {
                         }
                     }
                 })
-
-
             })
 
-            if (LIMIT * page < result.count) {
-                fetchNextPage(page+1)
-            } else {
-                console.log('Finished.')
-                // process.exit(0)
-                // setTimeout(function() { fetchNextPage(1) }, 1000 * 10 * 1 * 1)
-                setTimeout(function() { fetchNextPage(1) }, 1000 * 60 * 60 * 24)
-            }
         }
     })
 }
