@@ -26,7 +26,7 @@ console.log(opts)
 
 var EntuLib = entulib(opts.USER_ID, opts.API_KEY, opts.HOSTNAME)
 var LIMIT = 10
-
+var result_counter = 0
 
 var fetchNextPage = function fetchNextPage(page) {
     EntuLib.findEntity('eksponaat', '00000', LIMIT, page, function findEntityCB(err, result) {
@@ -39,15 +39,39 @@ var fetchNextPage = function fetchNextPage(page) {
         } else {
             console.log('Fetched ' + result.result.length + '/' + result.count
                 + ' results on page ' + page + '/' + Math.ceil(result.count / LIMIT))
-            console.log(result.result)
+            // console.log(result.result)
+            result.result.forEach(function entityLoop(entity) {
+                result_counter++
+                console.log(result_counter + ':', entity.id)
+
+                EntuLib.getEntity(entity.id, function findEntityCB(err, result) {
+                    if (err) {
+                        console.log('Can\'t reach Entu', err, result)
+                        process.exit(99)
+                    }
+                    else if (result.error !== undefined) {
+                        console.log (result.error, 'Failed to fetch from Entu.')
+                    } else {
+                        console.log(entity.id + ':', result.result.displayname, result.result.displayinfo)
+                        var photo_property = result.result.properties['photo']
+                        if (photo_property.values) {
+                            photo_property.values.forEach(function photoLoop(photo_val) {
+                                console.log(entity.id + '/' + photo_val.id + '[' + photo_val.db_value + ']:', photo_val.value)
+                            })
+                        }
+                    }
+                })
+
+
+            })
 
             if (LIMIT * page < result.count) {
                 fetchNextPage(page+1)
             } else {
                 console.log('Finished.')
-                process.exit(0)
+                // process.exit(0)
                 // setTimeout(function() { fetchNextPage(1) }, 1000 * 10 * 1 * 1)
-                // setTimeout(function() { fetchNextPage(1) }, 1000 * 60 * 60 * 24)
+                setTimeout(function() { fetchNextPage(1) }, 1000 * 60 * 60 * 24)
             }
         }
     })
@@ -64,21 +88,6 @@ var pulse = function pulse(ms) {
 }
 pulse(10 * 1000)
 
-// var server = http.createServer(function(req, res) {
-
-//   var options = {
-//     width: 120,
-//     height: 80,
-//     srcPath: "image.png",
-//     dstPath: "output.png"
-//   };
-
-//   im.resize(options, function(err) {
-//     if(err) { throw err; }
-//     res.end("Image resize complete");
-//   });
-
-// }).listen(8080);
 
 
 /*
@@ -96,7 +105,7 @@ docker logs -f puhh
 RESTART and LOG
 docker kill puhh
 docker start puhh
-docker logs -f puhh
+docker logs -f --tail=5 puhh
 
 CLEANUP
 docker kill puhh
