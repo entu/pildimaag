@@ -5,11 +5,11 @@ MAINTAINER mihkel <michelek@fleep.io>
 
 # Install.
 RUN \
-    apt-get update
+    apt-get update && \
+    apt-get install -y nodejs npm git
 
 RUN \
-    apt-get install -y nodejs npm git && \
-    apt-get install -y imagemagic
+    apt-get install -y graphicsmagick
 
 RUN \
     git clone https://github.com/OkuMuuseum/pildimaag.git && \
