@@ -1,12 +1,15 @@
 var nomnom          = require('nomnom')
 var request         = require('request');
-var EventEmitter    = require('events').EventEmitter;
+var EventEmitter    = require('events').EventEmitter
 var fs              = require('fs')
-var util            = require('util');
+var util            = require('util')
 var path            = require('path')
+var stream          = require('stream')
 // var http            = require("http");
-var im              = require("imagemagick-stream");
+// var im              = require("imagemagick-stream");
 // var im              = require("imagemagick");
+// var gm              = require('graphicsmagick-stream')
+var gm              = require('gm')
 
 var entulib         = require('./entulib.js')
 var helper          = require('./helper.js')
@@ -72,10 +75,11 @@ var fetchNextPage = function fetchNextPage(page) {
                     } else {
                         // console.log(entity.id + ':', result.result.displayname, result.result.displayinfo)
                         var photo_property = result.result.properties['photo']
+                        var code_property = result.result.properties['code']
                         if (photo_property.values) {
                             photo_property.values.forEach(function photoLoop(photo_val) {
                                 console.log(entity.id + '/' + photo_val.id + '[' + photo_val.db_value + ']:', photo_val.value)
-                                var ff = new fetchFile(photo_val.db_value, photo_val.value)
+                                var ff = new fetchFile(photo_val.db_value, photo_val.value, code_property.values[0].value)
                                 .on('error', function fileFetchError(err_msg, err_no) {
                                     console.log(err_msg, err_no)
                                     process.exit(err_no)
@@ -115,7 +119,9 @@ var countLoadingProcesses = function countLoadingProcesses() {
     return loading_process_count
 }
 
-var fetchFile = function fetchFile(file_id, file_name) {
+var append_background = path.resolve(HOME_DIR, 'text_background.png')
+
+var fetchFile = function fetchFile(file_id, file_name, exp_nr) {
     EventEmitter.call(this)
     var self = this
 
@@ -130,9 +136,10 @@ var fetchFile = function fetchFile(file_id, file_name) {
     console.log(fetch_uri + '-->' + download_filename)
 
     incrementProcessCount()
-    var resize = im().resize('800x600').quality(90)
+    // var resize = im().resize('800x600').quality(90)
+    var resize = gm().resize('800x600').append('./text_background.png')
 
-    request
+    gm(request
         .get(fetch_uri)
         .on('error', function(err) {
             console.log(err)
@@ -164,7 +171,19 @@ var fetchFile = function fetchFile(file_id, file_name) {
                 clearTimeout(t)
             })
         })
-        .pipe(resize).pipe(fs.createWriteStream(download_filename))
+    )
+    .resize(800, 550)
+    .append(append_background)
+    .drawText(10, 20, 'Okupatsioonide Muuseumi eksponaat #' + exp_nr ,'south')
+    .stream(function(err, stdout, stderr) {
+        var f = fs.createWriteStream(download_filename)
+        var e = fs.createWriteStream(download_filename + '.output.txt')
+
+        stderr.pipe(e)
+        stdout.pipe(f)
+    })
+
+        // .pipe(resize).stream().pipe(fs.createWriteStream(download_filename))
 
 }
 util.inherits(fetchFile, EventEmitter)
