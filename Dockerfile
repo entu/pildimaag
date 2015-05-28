@@ -14,9 +14,7 @@ RUN \
 RUN \
     git clone https://github.com/OkuMuuseum/pildimaag.git && \
     cd pildimaag/ && \
+    mkdir temp && \
     npm install
-
-RUN \
-    ln -s /usr/bin/nodejs /usr/bin/node
 
 ENTRYPOINT ["nodejs", "/pildimaag/server.js"]
