@@ -94,7 +94,7 @@ var fetchNextPage = function fetchNextPage(page) {
                             photo_property.values.forEach(function photoLoop(photo_val) {
                                 var thumb_is_present = false
                                 if (thumb_property.values) {
-                                    thumb_property.values.forEach(function photoLoop(thumb_val) {
+                                    thumb_property.values.forEach(function thumbLoop(thumb_val) {
                                         if (thumb_val.value === photo_val.value) {
                                             thumb_is_present = true
                                         }
@@ -157,8 +157,6 @@ var countLoadingProcesses = function countLoadingProcesses() {
 
 var append_background = path.resolve(HOME_DIR, 'text_background.png')
 
-var THUMB_TYPE = 'jpg'
-
 var fetchFile = function fetchFile(entity_id, file_id, file_name, exp_nr, nimetus) {
     incrementProcessCount()
     EventEmitter.call(this)
@@ -170,7 +168,7 @@ var fetchFile = function fetchFile(entity_id, file_id, file_name, exp_nr, nimetu
     }, MAX_DOWNLOAD_TIME * 1000)
 
     var fetch_uri = 'https://' + opts.HOSTNAME + '/api2/file-' + file_id
-    var download_filename = path.resolve(TEMP_DIR, file_id + '.' + THUMB_TYPE)
+    var download_filename = path.resolve(TEMP_DIR, file_id + '.' + 'jpg')
 
     gm(request
         .get(fetch_uri)
@@ -211,7 +209,7 @@ var fetchFile = function fetchFile(entity_id, file_id, file_name, exp_nr, nimetu
         })
     )
     .resize(800, 530)
-    .stream(THUMB_TYPE, function(err, stdout, stderr) {
+    .stream('jpeg', function(err, stdout, stderr) {
         gm(stdout)
         .append(append_background)
         // .append(gm(240, 70))
@@ -234,7 +232,7 @@ var fetchFile = function fetchFile(entity_id, file_id, file_name, exp_nr, nimetu
                     }
                     // console.log('bytes written: ' + f.bytesWritten);
                     incrementProcessCount()
-                    EntuLib.addFile(entity_id, PIC_READ_ENTITY + '-' + PIC_WRITE_PROPERTY, file_name, 'image/' + THUMB_TYPE, f.bytesWritten, download_filename, function addFileCB(err, result) {
+                    EntuLib.addFile(entity_id, PIC_READ_ENTITY + '-' + PIC_WRITE_PROPERTY, file_name, 'image/' + 'jpg', f.bytesWritten, download_filename, function addFileCB(err, result) {
                         decrementProcessCount()
                         if (err) {
                             console.log('WARNING: addFileCB: ' + fetch_uri , err, result)
