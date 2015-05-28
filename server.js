@@ -58,7 +58,7 @@ ENTU_API_POST_FILE = ENTU_API + 'file/s3'
 var fetchNextPage = function fetchNextPage(page) {
 
     connection_counter ++
-    EntuLib.findEntity(PIC_READ_ENTITY, '00000/000', PAGE_SIZE_LIMIT, page, function findEntityCB(err, result) {
+    EntuLib.findEntity(PIC_READ_ENTITY, '00000', PAGE_SIZE_LIMIT, page, function findEntityCB(err, result) {
         connection_counter --
         if (err) {
             console.log('findEntityCB: Can\'t reach Entu', err, result)
