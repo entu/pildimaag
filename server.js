@@ -109,8 +109,8 @@ var fetchNextPage = function fetchNextPage(page) {
                     if (download_counter < MAX_DOWNLOAD_COUNT) {
                         fetchNextPage(page)
                     } else {
-                        // console.log('Postponing load of page #' + page)
-                        setTimeout(function() { fetchIfReady(page) }, 1000)
+                        console.log('Postponing load of page #' + page, 'Active downloads: ' + download_counter)
+                        setTimeout(function() { fetchIfReady(page) }, 10*1000)
                     }
                 }
                 fetchIfReady(page + 1)
@@ -205,7 +205,7 @@ var fetchFile = function fetchFile(entity_id, file_id, file_name, exp_nr, nimetu
             .drawText(0, 15, 'Okupatsioonide Muuseum #' + exp_nr + '\n' + nimetus + '\nokupatsioon.entu.ee', 'south')
             .stream(function(err, stdout, stderr) {
                 if (err) {
-                    console.log('WARNING: ' + fetch_uri , err, stdout, stderr)
+                    console.log('WARNING: bm.stream: ' + fetch_uri , err, 'Active downloads' + download_counter)
                     setTimeout(function() { fetchFile(entity_id, file_id, file_name, exp_nr, nimetus) }, 10 * 1000)
                     return
                 }
@@ -226,7 +226,7 @@ var fetchFile = function fetchFile(entity_id, file_id, file_name, exp_nr, nimetu
                             setTimeout(function() { fetchFile(entity_id, file_id, file_name, exp_nr, nimetus) }, 10 * 1000)
                             return
                         }
-                        console.log('SUCCESS: ' + fetch_uri + '|' + helper.bytesToSize(f.bytesWritten) + 'b')
+                        console.log('SUCCESS: ' + fetch_uri + ' ' + helper.bytesToSize(f.bytesWritten))
                     })
                 })
             })
