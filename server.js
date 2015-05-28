@@ -151,7 +151,7 @@ var fetchFile = function fetchFile(entity_id, file_id, file_name, exp_nr, nimetu
 
     var t = setTimeout(function() {
         decrementProcessCount()
-        self.emit('error', 'Error: ' + file_id + '|' + fetch_uri + '|' + file_name + ' timed out!', 95)
+        self.emit('error', 'Error: ' + fetch_uri + ' timed out!', 95)
     }, MAX_DOWNLOAD_TIME * 1000)
 
     var fetch_uri = 'https://' + opts.HOSTNAME + '/api2/file-' + file_id
@@ -161,7 +161,7 @@ var fetchFile = function fetchFile(entity_id, file_id, file_name, exp_nr, nimetu
         .get(fetch_uri)
         .on('error', function(err) {
             decrementProcessCount()
-            console.log('WARNING: request: ' + file_id + '|' + fetch_uri + '|' + file_name, err)
+            console.log('WARNING: request: ' + fetch_uri , err)
             setTimeout(function() { fetchFile(entity_id, file_id, file_name, exp_nr, nimetus) }, 10 * 1000)
             return
         })
@@ -170,25 +170,25 @@ var fetchFile = function fetchFile(entity_id, file_id, file_name, exp_nr, nimetu
             // console.log(response.headers)
             if (filesize === undefined) {
                 decrementProcessCount()
-                console.log('WARNING: filesize === undefined: ' + file_id + '|' + fetch_uri + '|' + file_name)
+                console.log('WARNING: filesize === undefined: ' + fetch_uri )
                 setTimeout(function() { fetchFile(entity_id, file_id, file_name, exp_nr, nimetus) }, 10 * 1000)
                 return
             } else {
                 total_download_size += Number(filesize)
-                // console.log('Downloading: ' + file_id + '|' + fetch_uri + '|' + file_name + ' - ' + filesize + ' bytes.')
+                // console.log('Downloading: ' + fetch_uri + ' - ' + filesize + ' bytes.')
             }
             response.on('data', function(chunk) {
                 bytes_downloaded += chunk.length
                 if (filesize === undefined) {
-                    console.log(file_id + '|' + fetch_uri + '|' + file_name + ' loaded chunk of ' + chunk.length + ' bytes.')
+                    // console.log('WARNING: filesize === undefined:' + fetch_uri + ' loaded chunk of ' + chunk.length + ' bytes.')
                     total_download_size += chunk.length
-                    console.log(chunk.toString('utf8'))
+                    // console.log(chunk.toString('utf8'))
                 }
                 // console.log('Progress: ' + file_name + ' - ' + helper.bytesToSize(total_download_size) + ' - ' + helper.bytesToSize(bytes_downloaded) + ' = ' + helper.bytesToSize(total_download_size - bytes_downloaded) )
             })
             response.on('end', function() {
                 if (response.statusCode === 200) {
-                    // console.log('Finished: ' + file_id + '|' + fetch_uri + '|' + file_name + ' - ' + helper.bytesToSize(total_download_size) + ' - ' + helper.bytesToSize(bytes_downloaded) + ' = ' + helper.bytesToSize(total_download_size - bytes_downloaded) )
+                    // console.log('Finished: ' + fetch_uri + ' - ' + helper.bytesToSize(total_download_size) + ' - ' + helper.bytesToSize(bytes_downloaded) + ' = ' + helper.bytesToSize(total_download_size - bytes_downloaded) )
                 }
                 decrementProcessCount()
                 clearTimeout(t)
@@ -205,7 +205,7 @@ var fetchFile = function fetchFile(entity_id, file_id, file_name, exp_nr, nimetu
             .drawText(0, 15, 'Okupatsioonide Muuseum #' + exp_nr + '\n' + nimetus + '\nokupatsioon.entu.ee', 'south')
             .stream(function(err, stdout, stderr) {
                 if (err) {
-                    console.log('ERROR: ' + file_id + '|' + fetch_uri + '|' + file_name, err, stdout, stderr)
+                    console.log('WARNING: ' + fetch_uri , err, stdout, stderr)
                     setTimeout(function() { fetchFile(entity_id, file_id, file_name, exp_nr, nimetus) }, 10 * 1000)
                     return
                 }
@@ -213,7 +213,7 @@ var fetchFile = function fetchFile(entity_id, file_id, file_name, exp_nr, nimetu
                 stdout.pipe(f)
                 f.on('finish', function() {
                     if (f.bytesWritten === 0) {
-                        console.log('ERROR: f.bytesWritten === 0: ' + file_id + '|' + fetch_uri + '|' + file_name)
+                        console.log('WARNING: f.bytesWritten === 0: ' + fetch_uri )
                         setTimeout(function() { fetchFile(entity_id, file_id, file_name, exp_nr, nimetus) }, 10 * 1000)
                         return
                     }
@@ -222,11 +222,11 @@ var fetchFile = function fetchFile(entity_id, file_id, file_name, exp_nr, nimetu
                     EntuLib.addFile(entity_id, PIC_READ_ENTITY + '-' + PIC_WRITE_PROPERTY, file_name, 'image/' + THUMB_TYPE, f.bytesWritten, download_filename, function addFileCB(err, result) {
                         decrementProcessCount()
                         if (err) {
-                            console.log('addFileCB: ' + file_id + '|' + fetch_uri + '|' + file_name, err, result)
+                            console.log('WARNING: addFileCB: ' + fetch_uri , err, result)
                             setTimeout(function() { fetchFile(entity_id, file_id, file_name, exp_nr, nimetus) }, 10 * 1000)
                             return
                         }
-                        console.log('SUCCESS: ' + file_id + '|' + fetch_uri + '|' + file_name + '|' + f.bytesWritten + 'b')
+                        console.log('SUCCESS: ' + fetch_uri + '|' + helper.bytesToSize(f.bytesWritten) + 'b')
                     })
                 })
             })
