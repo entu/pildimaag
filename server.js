@@ -140,7 +140,7 @@ var fetchNextPage = function fetchNextPage(page) {
     })
 }
 
-fetchNextPage(1)
+fetchNextPage(1900)
 
 var MAX_DOWNLOAD_TIME = 60 * 60 // seconds
 var total_download_size = 0
@@ -184,7 +184,7 @@ var fetchFile = function fetchFile(entity_id, file_id, file_name, exp_nr, nimetu
             if (filesize === undefined) {
                 decrementProcessCount()
                 console.log('WARNING: filesize === undefined: ' + fetch_uri )
-                setTimeout(function() { fetchFile(entity_id, file_id, file_name, exp_nr, nimetus) }, 10 * 1000)
+                // setTimeout(function() { fetchFile(entity_id, file_id, file_name, exp_nr, nimetus) }, 10 * 1000)
                 return
             } else {
                 total_download_size += Number(filesize)

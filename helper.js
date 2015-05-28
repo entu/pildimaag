@@ -34,7 +34,7 @@ var msToTime = function msToTime(ms) {
         unit = 'w'
         amount = ms / 1000 / 60 / 60 / 24 / 7
     }
-    return amount.toFixed(decimals) + ' ' + unit
+    return amount.toFixed(decimals) + '' + unit
 }
 
 var dates = {
