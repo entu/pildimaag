@@ -154,7 +154,6 @@ var fetchFile = function fetchFile(entity_id, file_id, file_name, exp_nr, nimetu
     }, MAX_DOWNLOAD_TIME * 1000)
 
     var fetch_uri = 'https://' + opts.HOSTNAME + '/api2/file-' + file_id
-    // var download_filename = path.resolve(TEMP_DIR, file_id + '.jpg')
     var download_filename = path.resolve(TEMP_DIR, file_id + '.' + THUMB_TYPE)
 
     gm(request
@@ -162,7 +161,7 @@ var fetchFile = function fetchFile(entity_id, file_id, file_name, exp_nr, nimetu
         .on('error', function(err) {
             console.log('request error for: ' + file_id + '|' + fetch_uri + '|' + file_name, err)
             decrementProcessCount()
-            fetchFile(file_id, file_name, exp_nr, nimetus)
+            fetchFile(entity_id, file_id, file_name, exp_nr, nimetus)
         })
         .on('response', function response_handler( response ) {
             var filesize = response.headers['content-length']
@@ -198,7 +197,6 @@ var fetchFile = function fetchFile(entity_id, file_id, file_name, exp_nr, nimetu
             })
         })
     )
-    // .resize(400, 230)
     .resize(800, 530)
     .stream(THUMB_TYPE, function(err, stdout, stderr) {
         gm(stdout)
@@ -212,12 +210,14 @@ var fetchFile = function fetchFile(entity_id, file_id, file_name, exp_nr, nimetu
                 stdout.pipe(f)
                 f.on('finish', function() {
                     console.log('bytes written: ' + f.bytesWritten);
+                    incrementProcessCount()
                     EntuLib.addFile(entity_id, PIC_READ_ENTITY + '-' + PIC_WRITE_PROPERTY, file_name, 'image/' + THUMB_TYPE, f.bytesWritten, download_filename, function addFileCB(err, result) {
+                        decrementProcessCount()
                         if (err) {
-                            console.log('addFileCB: ', err, result)
+                            console.log('addFileCB: ' + file_id + '|' + fetch_uri + '|' + file_name, err, result)
                             process.exit(99)
                         }
-                        console.log(result)
+                        console.log('Uploaded ' + file_id + '|' + fetch_uri + '|' + file_name)
                     })
                 })
 

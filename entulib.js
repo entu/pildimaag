@@ -157,9 +157,6 @@ var EntuLib = function EntuLib(entu_user_id, entu_user_key, entu_url) {
                     console.log(data)
                     process.exit(99)
                 }
-                console.log(data)
-                console.log(data.result.s3)
-                console.log(data.result.properties)
 
                 formData = data.result.s3.data
                 formData['file'] = fs.createReadStream(filepath)
