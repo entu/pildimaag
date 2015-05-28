@@ -87,10 +87,25 @@ var fetchNextPage = function fetchNextPage(page) {
                     } else {
                         // console.log(entity.id + ':', result.result.displayname, result.result.displayinfo)
                         var photo_property = result.result.properties[PIC_READ_PROPERTY]
+                        var thumb_property = result.result.properties[PIC_WRITE_PROPERTY]
                         var code_value = result.result.properties['code'].values ? result.result.properties['code'].values[0].value : ''
                         var nimetus_value = result.result.properties['tag'].values ? result.result.properties['tag'].values[0].value : ''
                         if (photo_property.values) {
                             photo_property.values.forEach(function photoLoop(photo_val) {
+                                var thumb_is_present = false
+                                if (thumb_property.values) {
+                                    thumb_property.values.forEach(function photoLoop(thumb_val) {
+                                        if (thumb_val.value === photo_val.value) {
+                                            thumb_is_present = true
+                                        }
+                                        // console.log(photo_property.values)
+                                        // console.log(thumb_property.values)
+                                        // process.exit(99)
+                                    })
+                                }
+                                if (thumb_is_present) {
+                                    return
+                                }
                                 // console.log(entity.id + '/' + photo_val.id + '[' + photo_val.db_value + ']:', photo_val.value)
                                 var ff = new fetchFile(entity.id, photo_val.db_value, photo_val.value, code_value, nimetus_value)
                                 .on('error', function fileFetchError(err_msg, err_no) {
