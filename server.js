@@ -38,8 +38,8 @@ opts.HOSTNAME = 'okupatsioon.entu.ee'
 
 HOME_DIR = path.dirname(process.argv[1])
 TEMP_DIR = path.resolve(HOME_DIR, 'temp')
-PAGE_SIZE_LIMIT = 10
-MAX_DOWNLOAD_COUNT = 15
+PAGE_SIZE_LIMIT = 5
+MAX_DOWNLOAD_COUNT = 10
 PIC_READ_ENTITY = 'eksponaat'
 PIC_READ_PROPERTY = 'photo'
 PIC_WRITE_PROPERTY = 'thumb'
@@ -58,7 +58,7 @@ ENTU_API_POST_FILE = ENTU_API + 'file/s3'
 var fetchNextPage = function fetchNextPage(page) {
 
     connection_counter ++
-    EntuLib.findEntity(PIC_READ_ENTITY, '00000', PAGE_SIZE_LIMIT, page, function findEntityCB(err, result) {
+    EntuLib.findEntity(PIC_READ_ENTITY, '', PAGE_SIZE_LIMIT, page, function findEntityCB(err, result) {
         connection_counter --
         if (err) {
             console.log('findEntityCB: Can\'t reach Entu', err, result)
@@ -117,7 +117,7 @@ var fetchNextPage = function fetchNextPage(page) {
                 console.log('No more pages for today.')
                 // process.exit(0)
                 // setTimeout(function() { fetchNextPage(1) }, 1000 * 10 * 1 * 1)
-                setTimeout(function() { fetchNextPage(1) }, 1000 * 60 * 60 * 24)
+                // setTimeout(function() { fetchNextPage(1) }, 1000 * 60 * 60 * 24)
             }
 
         }
@@ -170,7 +170,7 @@ var fetchFile = function fetchFile(entity_id, file_id, file_name, exp_nr, nimetu
                 console.log(file_id + '|' + fetch_uri + '|' + file_name + ' has no size! Concurrent downloads: #' + download_counter)
                 decrementProcessCount()
                 setTimeout(function() {
-                    fetchFile(file_id, file_name, exp_nr, nimetus)
+                    fetchFile(entity_id, file_id, file_name, exp_nr, nimetus)
                 }, 1000)
                 return
                 // self.emit('error', file_id + '|' + fetch_uri + '|' + file_name + ' has no size!', 90)
@@ -209,6 +209,10 @@ var fetchFile = function fetchFile(entity_id, file_id, file_name, exp_nr, nimetu
                 var f = fs.createWriteStream(download_filename)
                 stdout.pipe(f)
                 f.on('finish', function() {
+                    if (f.bytesWritten === 0) {
+                        fetchFile(entity_id, file_id, file_name, exp_nr, nimetus)
+                        return
+                    }
                     console.log('bytes written: ' + f.bytesWritten);
                     incrementProcessCount()
                     EntuLib.addFile(entity_id, PIC_READ_ENTITY + '-' + PIC_WRITE_PROPERTY, file_name, 'image/' + THUMB_TYPE, f.bytesWritten, download_filename, function addFileCB(err, result) {
