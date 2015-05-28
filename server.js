@@ -209,7 +209,7 @@ var fetchFile = function fetchFile(entity_id, file_id, file_name, exp_nr, nimetu
         })
     )
     .resize(800, 530)
-    .stream('jpeg', function(err, stdout, stderr) {
+    .stream('jpg', function(err, stdout, stderr) {
         gm(stdout)
         .append(append_background)
         // .append(gm(240, 70))
@@ -232,7 +232,7 @@ var fetchFile = function fetchFile(entity_id, file_id, file_name, exp_nr, nimetu
                     }
                     // console.log('bytes written: ' + f.bytesWritten);
                     incrementProcessCount()
-                    EntuLib.addFile(entity_id, PIC_READ_ENTITY + '-' + PIC_WRITE_PROPERTY, file_name, 'image/' + 'jpg', f.bytesWritten, download_filename, function addFileCB(err, result) {
+                    EntuLib.addFile(entity_id, PIC_READ_ENTITY + '-' + PIC_WRITE_PROPERTY, file_name, 'image/jpeg', f.bytesWritten, download_filename, function addFileCB(err, result) {
                         decrementProcessCount()
                         if (err) {
                             console.log('WARNING: addFileCB: ' + fetch_uri , err, result)
