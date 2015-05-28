@@ -2,7 +2,7 @@ var https   = require('https')
 var crypto = require('crypto')
 var querystring = require('querystring')
 var fs       = require('fs')
-
+var request = require('request')
 
 var EntuLib = function EntuLib(entu_user_id, entu_user_key, entu_url) {
 
@@ -48,8 +48,8 @@ var EntuLib = function EntuLib(entu_user_id, entu_user_key, entu_url) {
             }
         }
         var buffer = ''
-        var request = https.request(options)
-        request.on('response', function response_handler(response) {
+        var hrequest = https.request(options)
+        hrequest.on('response', function response_handler(response) {
             response.on('data', function chunk_sticher(chunk) {
                 buffer += chunk
             })
@@ -66,15 +66,15 @@ var EntuLib = function EntuLib(entu_user_id, entu_user_key, entu_url) {
                 callback(null, returned_data)
             })
         })
-        request.on('error', function (e) {
+        hrequest.on('error', function (e) {
             callback(e)
             return
         })
         if (data !== undefined) {
             // console.log(typeof data + ' . ' + (data))
-            request.write(data)
+            hrequest.write(data)
         }
-        request.end()
+        hrequest.end()
     }
 
     return {
@@ -139,54 +139,40 @@ var EntuLib = function EntuLib(entu_user_id, entu_user_key, entu_url) {
         // property_definition in form of entity_keyname + "-" + property_keyname
         // as for entity with definition "person" and property with definition "photo"
         // property_definition = "person-photo"
-        addFile: function (entity_id, property_definition, abspath, callback) {
-            if (!fs.existsSync(abspath))
-                callback({'Error':'No such file','Path':abspath})
+        addFile: function (entity_id, property_definition, filename, filetype, filesize, filepath, callback) {
+
             var entu_query = {
-                'filename': abspath,
                 'entity': entity_id,
-                'property': property_definition
+                'property': property_definition,
+                'filename': filename,
+                'filetype': filetype,
+                'filesize': filesize
             }
             var data = __create_policy(entu_query)
-            var path = API_VERSION + 'file?' + data
-            file_contents = fs.readFileSync(abspath)
-            __submit_it(path, 'POST', file_contents, callback)
+            var path = API_VERSION + 'file/s3'
+            __submit_it(path, 'POST', data, function addFileCB(err, data) {
+                if (err) {
+                    console.log('addFileCB: Can\'t reach Entu')
+                    console.log(err)
+                    console.log(data)
+                    process.exit(99)
+                }
+                console.log(data)
+                console.log(data.result.s3)
+                console.log(data.result.properties)
+
+                formData = data.result.s3.data
+                formData['file'] = fs.createReadStream(filepath)
+
+                request.post({url: data.result.s3.url, formData: formData}, function optionalCallback(err, httpResponse, body) {
+                    if (err) {
+                        callback(err, 'Upload failed!')
+                    }
+                    callback(null, 'Upload successful!')
+                })
+            })
         }
     }
 }
 
 module.exports = EntuLib
-
-
-// Sample usage
-
-// var print_result = function print_result(data) {
-//     console.log(stringifier(data))
-// }
-
-// var stringifier = function stringifier(o) {
-//     var cache = [];
-//     return JSON.stringify(o, function(key, value) {
-//         if (typeof value === 'object' && value !== null) {
-//             if (cache.indexOf(value) !== -1) {
-//                 // Circular reference found, replace key
-//                 return 'Circular reference to: ' + key
-//             }
-//             // Store value in our collection
-//             cache.push(value)
-//         }
-//         return value
-//     }, '\t')
-// }
-
-// var entu_user_id = 1001
-// var entu_user_key = 'Write your Entu key here'
-// var entu_url = 'yourdomain.entu.ee'
-// var EntuLib = new EntuLib(entu_user_id, entu_user_key, entu_url)
-// EntuLib.getEntity(print_result, 684)
-// EntuLib.getChilds(print_result, 684)
-// EntuLib.getReferrals(print_result, 684)
-// EntuLib.findEntity(print_result, 'person', 'test', 10)
-// EntuLib.createEntity(print_result, 610, 'person', {'forename':'test3','surname':'test3'})
-// EntuLib.addProperties(print_result, 684, 'person', {'email':'foo@bar','user':'zaza@google'})
-// EntuLib.addFile(print_result, 684, 'person-photo', '/Users/michelek/Dropbox/Screenshots/penrose_bw.png')

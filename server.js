@@ -5,6 +5,7 @@ var fs              = require('fs')
 var util            = require('util')
 var path            = require('path')
 var stream          = require('stream')
+
 // var http            = require("http");
 // var im              = require("imagemagick-stream");
 // var im              = require("imagemagick");
@@ -35,21 +36,32 @@ var opts = nomnom.options({
 opts.HOSTNAME = 'okupatsioon.entu.ee'
 // console.log(opts)
 
-var HOME_DIR = path.dirname(process.argv[1])
-var TEMP_DIR = path.resolve(HOME_DIR, 'temp')
+HOME_DIR = path.dirname(process.argv[1])
+TEMP_DIR = path.resolve(HOME_DIR, 'temp')
+PAGE_SIZE_LIMIT = 10
+MAX_DOWNLOAD_COUNT = 15
+PIC_READ_ENTITY = 'eksponaat'
+PIC_READ_PROPERTY = 'photo'
+PIC_WRITE_PROPERTY = 'thumb'
+
 var EntuLib = entulib(opts.USER_ID, opts.API_KEY, opts.HOSTNAME)
-var PAGE_SIZE_LIMIT = 10
 var connection_counter = 0
 var download_counter = 0
-var MAX_DOWNLOAD_COUNT = 15
+
+
+ENTU_URI = 'https://' + opts.HOSTNAME + '/'
+ENTU_API = ENTU_URI + 'api2/'
+ENTU_API_ENTITY = ENTU_API + 'entity-'
+ENTU_API_POST_FILE = ENTU_API + 'file/s3'
+
 
 var fetchNextPage = function fetchNextPage(page) {
 
     connection_counter ++
-    EntuLib.findEntity('eksponaat', '0000', PAGE_SIZE_LIMIT, page, function findEntityCB(err, result) {
+    EntuLib.findEntity(PIC_READ_ENTITY, '00000/000', PAGE_SIZE_LIMIT, page, function findEntityCB(err, result) {
         connection_counter --
         if (err) {
-            console.log('Can\'t reach Entu', err, result)
+            console.log('findEntityCB: Can\'t reach Entu', err, result)
             process.exit(99)
         }
         else if (result.error !== undefined) {
@@ -62,24 +74,24 @@ var fetchNextPage = function fetchNextPage(page) {
             result.result.forEach(function entityLoop(entity) {
 
                 connection_counter ++
-                EntuLib.getEntity(entity.id, function findEntityCB(err, result) {
+                EntuLib.getEntity(entity.id, function getEntityCB(err, result) {
                     connection_counter --
                     // console.log('#:' + connection_counter)
                     if (err) {
-                        console.log('Can\'t reach Entu', err, result)
+                        console.log('getEntityCB: Can\'t reach Entu', err, result)
                         process.exit(99)
                     }
                     else if (result.error !== undefined) {
                         console.log (result.error, 'Failed to fetch from Entu.')
                     } else {
                         // console.log(entity.id + ':', result.result.displayname, result.result.displayinfo)
-                        var photo_property = result.result.properties['photo']
+                        var photo_property = result.result.properties[PIC_READ_PROPERTY]
                         var code_value = result.result.properties['code'].values ? result.result.properties['code'].values[0].value : ''
                         var nimetus_value = result.result.properties['tag'].values ? result.result.properties['tag'].values[0].value : ''
                         if (photo_property.values) {
                             photo_property.values.forEach(function photoLoop(photo_val) {
                                 // console.log(entity.id + '/' + photo_val.id + '[' + photo_val.db_value + ']:', photo_val.value)
-                                var ff = new fetchFile(photo_val.db_value, photo_val.value, code_value, nimetus_value)
+                                var ff = new fetchFile(entity.id, photo_val.db_value, photo_val.value, code_value, nimetus_value)
                                 .on('error', function fileFetchError(err_msg, err_no) {
                                     console.log('fetchFile error: ', err_msg, err_no)
                                     process.exit(err_no)
@@ -114,7 +126,7 @@ var fetchNextPage = function fetchNextPage(page) {
 
 fetchNextPage(1)
 
-var MAX_DOWNLOAD_TIME = 5 * 60 // seconds
+var MAX_DOWNLOAD_TIME = 60 * 60 // seconds
 var total_download_size = 0
 var bytes_downloaded = 0
 var decrementProcessCount = function decrementProcessCount() {
@@ -128,9 +140,10 @@ var countLoadingProcesses = function countLoadingProcesses() {
 }
 
 var append_background = path.resolve(HOME_DIR, 'text_background.png')
-var error_stream = fs.createWriteStream('errors.txt')
 
-var fetchFile = function fetchFile(file_id, file_name, exp_nr, nimetus) {
+var THUMB_TYPE = 'jpg'
+
+var fetchFile = function fetchFile(entity_id, file_id, file_name, exp_nr, nimetus) {
     incrementProcessCount()
     EventEmitter.call(this)
     var self = this
@@ -141,11 +154,8 @@ var fetchFile = function fetchFile(file_id, file_name, exp_nr, nimetus) {
     }, MAX_DOWNLOAD_TIME * 1000)
 
     var fetch_uri = 'https://' + opts.HOSTNAME + '/api2/file-' + file_id
-    var download_filename = path.resolve(TEMP_DIR, file_id + path.extname(file_name))
-    // console.log(fetch_uri + '-->' + download_filename)
-
-    // var resize = im().resize('800x600').quality(90)
-    var resize = gm().resize('800x600').append('./text_background.png')
+    // var download_filename = path.resolve(TEMP_DIR, file_id + '.jpg')
+    var download_filename = path.resolve(TEMP_DIR, file_id + '.' + THUMB_TYPE)
 
     gm(request
         .get(fetch_uri)
@@ -188,21 +198,29 @@ var fetchFile = function fetchFile(file_id, file_name, exp_nr, nimetus) {
             })
         })
     )
+    // .resize(400, 230)
     .resize(800, 530)
-    // .append(append_background)
-    // .drawText(10, 20, 'Okupatsioonide Muuseumi eksponaat #' + exp_nr, 'south')
-    .stream(function(err, stdout, stderr) {
-        // stderr.pipe(error_stream)
+    .stream(THUMB_TYPE, function(err, stdout, stderr) {
         gm(stdout)
         .append(append_background)
+        // .append(gm(240, 70))
         .stream(function(err, stdout, stderr) {
-            // stderr.pipe(error_stream)
             gm(stdout)
             .drawText(0, 15, 'Okupatsioonide Muuseum #' + exp_nr + '\n' + nimetus + '\nokupatsioon.entu.ee', 'south')
             .stream(function(err, stdout, stderr) {
-                // stderr.pipe(error_stream)
                 var f = fs.createWriteStream(download_filename)
                 stdout.pipe(f)
+                f.on('finish', function() {
+                    console.log('bytes written: ' + f.bytesWritten);
+                    EntuLib.addFile(entity_id, PIC_READ_ENTITY + '-' + PIC_WRITE_PROPERTY, file_name, 'image/' + THUMB_TYPE, f.bytesWritten, download_filename, function addFileCB(err, result) {
+                        if (err) {
+                            console.log('addFileCB: ', err, result)
+                            process.exit(99)
+                        }
+                        console.log(result)
+                    })
+                })
+
             })
         })
     })
@@ -213,10 +231,10 @@ util.inherits(fetchFile, EventEmitter)
 
 var pulse_cnt = 0
 var pulse = function pulse(ms) {
-    console.log('tick ' + (++pulse_cnt))
+    console.log('tick ' + (pulse_cnt ++))
     setTimeout(function() { pulse(ms) }, ms)
 }
-pulse(10 * 1000)
+pulse(60 * 1000)
 
 
 
@@ -231,5 +249,5 @@ docker logs -f puhh
 RESTART and LOG
 docker kill puhh
 docker start puhh
-docker logs -f --tail=5 puhh
+docker logs -f --tail=15 puhh
 */
