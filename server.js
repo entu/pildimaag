@@ -54,8 +54,6 @@ ENTU_API = ENTU_URI + 'api2/'
 ENTU_API_ENTITY = ENTU_API + 'entity-'
 ENTU_API_POST_FILE = ENTU_API + 'file/s3'
 
-// foo. baz!
-
 var fetchNextPage = function fetchNextPage(page) {
 
     connection_counter ++
@@ -67,10 +65,11 @@ var fetchNextPage = function fetchNextPage(page) {
         }
         else if (result.error !== undefined) {
             console.log (result.error, 'Failed to fetch from Entu.')
+            process.exit(99)
         } else {
 
-            console.log('Fetched ' + result.result.length + '/' + result.count
-                + ' results on page ' + page + '/' + Math.ceil(result.count / PAGE_SIZE_LIMIT))
+            // console.log('Fetched ' + result.result.length + '/' + result.count
+            //     + ' results on page ' + page + '/' + Math.ceil(result.count / PAGE_SIZE_LIMIT))
             // console.log(result.result)
             result.result.forEach(function entityLoop(entity) {
 
@@ -83,7 +82,8 @@ var fetchNextPage = function fetchNextPage(page) {
                         process.exit(99)
                     }
                     else if (result.error !== undefined) {
-                        console.log (result.error, 'Failed to fetch from Entu.')
+                        console.log(result.error, 'Failed to fetch from Entu.')
+                        process.exit(99)
                     } else {
                         // console.log(entity.id + ':', result.result.displayname, result.result.displayinfo)
                         var photo_property = result.result.properties[PIC_READ_PROPERTY]
@@ -104,12 +104,12 @@ var fetchNextPage = function fetchNextPage(page) {
             })
 
             if (PAGE_SIZE_LIMIT * page < result.count) {
-                console.log('Currently connections: #' + connection_counter + '; downloads: #' + download_counter)
+                // console.log('Currently connections: #' + connection_counter + '; downloads: #' + download_counter)
                 var fetchIfReady = function fetchIfReady(page) {
                     if (download_counter < MAX_DOWNLOAD_COUNT) {
                         fetchNextPage(page)
                     } else {
-                        console.log('Postponing load of page #' + page)
+                        // console.log('Postponing load of page #' + page)
                         setTimeout(function() { fetchIfReady(page) }, 1000)
                     }
                 }
@@ -160,22 +160,19 @@ var fetchFile = function fetchFile(entity_id, file_id, file_name, exp_nr, nimetu
     gm(request
         .get(fetch_uri)
         .on('error', function(err) {
-            console.log('request error for: ' + file_id + '|' + fetch_uri + '|' + file_name, err)
             decrementProcessCount()
-            fetchFile(entity_id, file_id, file_name, exp_nr, nimetus)
+            console.log('WARNING: request: ' + file_id + '|' + fetch_uri + '|' + file_name, err)
+            setTimeout(function() { fetchFile(entity_id, file_id, file_name, exp_nr, nimetus) }, 10 * 1000)
+            return
         })
         .on('response', function response_handler( response ) {
             var filesize = response.headers['content-length']
             // console.log(response.headers)
             if (filesize === undefined) {
-                console.log(file_id + '|' + fetch_uri + '|' + file_name + ' has no size! Concurrent downloads: #' + download_counter)
                 decrementProcessCount()
-                setTimeout(function() {
-                    fetchFile(entity_id, file_id, file_name, exp_nr, nimetus)
-                }, 1000)
+                console.log('WARNING: filesize === undefined: ' + file_id + '|' + fetch_uri + '|' + file_name)
+                setTimeout(function() { fetchFile(entity_id, file_id, file_name, exp_nr, nimetus) }, 10 * 1000)
                 return
-                // self.emit('error', file_id + '|' + fetch_uri + '|' + file_name + ' has no size!', 90)
-                // return
             } else {
                 total_download_size += Number(filesize)
                 // console.log('Downloading: ' + file_id + '|' + fetch_uri + '|' + file_name + ' - ' + filesize + ' bytes.')
@@ -207,11 +204,17 @@ var fetchFile = function fetchFile(entity_id, file_id, file_name, exp_nr, nimetu
             gm(stdout)
             .drawText(0, 15, 'Okupatsioonide Muuseum #' + exp_nr + '\n' + nimetus + '\nokupatsioon.entu.ee', 'south')
             .stream(function(err, stdout, stderr) {
+                if (err) {
+                    console.log('ERROR: ' + file_id + '|' + fetch_uri + '|' + file_name, err, stdout, stderr)
+                    setTimeout(function() { fetchFile(entity_id, file_id, file_name, exp_nr, nimetus) }, 10 * 1000)
+                    return
+                }
                 var f = fs.createWriteStream(download_filename)
                 stdout.pipe(f)
                 f.on('finish', function() {
                     if (f.bytesWritten === 0) {
-                        fetchFile(entity_id, file_id, file_name, exp_nr, nimetus)
+                        console.log('ERROR: f.bytesWritten === 0: ' + file_id + '|' + fetch_uri + '|' + file_name)
+                        setTimeout(function() { fetchFile(entity_id, file_id, file_name, exp_nr, nimetus) }, 10 * 1000)
                         return
                     }
                     console.log('bytes written: ' + f.bytesWritten);
@@ -220,12 +223,12 @@ var fetchFile = function fetchFile(entity_id, file_id, file_name, exp_nr, nimetu
                         decrementProcessCount()
                         if (err) {
                             console.log('addFileCB: ' + file_id + '|' + fetch_uri + '|' + file_name, err, result)
-                            process.exit(99)
+                            setTimeout(function() { fetchFile(entity_id, file_id, file_name, exp_nr, nimetus) }, 10 * 1000)
+                            return
                         }
-                        console.log('Uploaded ' + file_id + '|' + fetch_uri + '|' + file_name)
+                        console.log('SUCCESS: ' + file_id + '|' + fetch_uri + '|' + file_name + '|' + f.bytesWritten + 'b')
                     })
                 })
-
             })
         })
     })
