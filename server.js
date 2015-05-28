@@ -217,7 +217,7 @@ var fetchFile = function fetchFile(entity_id, file_id, file_name, exp_nr, nimetu
                         setTimeout(function() { fetchFile(entity_id, file_id, file_name, exp_nr, nimetus) }, 10 * 1000)
                         return
                     }
-                    console.log('bytes written: ' + f.bytesWritten);
+                    // console.log('bytes written: ' + f.bytesWritten);
                     incrementProcessCount()
                     EntuLib.addFile(entity_id, PIC_READ_ENTITY + '-' + PIC_WRITE_PROPERTY, file_name, 'image/' + THUMB_TYPE, f.bytesWritten, download_filename, function addFileCB(err, result) {
                         decrementProcessCount()
