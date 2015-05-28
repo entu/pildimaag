@@ -109,8 +109,8 @@ var fetchNextPage = function fetchNextPage(page) {
                     if (download_counter < MAX_DOWNLOAD_COUNT) {
                         fetchNextPage(page)
                     } else {
-                        console.log('Postponing load of page #' + page, 'Active downloads: ' + download_counter)
-                        setTimeout(function() { fetchIfReady(page) }, 10*1000)
+                        console.log('Postponing load of page #' + page  + '/' + Math.ceil(result.count / PAGE_SIZE_LIMIT), 'Active downloads: ' + download_counter)
+                        setTimeout(function() { fetchIfReady(page) }, 5*1000)
                     }
                 }
                 fetchIfReady(page + 1)
