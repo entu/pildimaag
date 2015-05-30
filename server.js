@@ -1,8 +1,8 @@
 var nomnom          = require('nomnom')
 var request         = require('request')
-var EventEmitter    = require('events').EventEmitter
+// var util            = require('util')
+// var EventEmitter    = require('events').EventEmitter
 var fs              = require('fs')
-var util            = require('util')
 var path            = require('path')
 var stream          = require('stream')
 
@@ -12,7 +12,7 @@ var entulib         = require('./entulib.js')
 var queue           = require('./queue.js')
 var helper          = require('./helper.js')
 
-var q = queue(10)
+var q = queue(5)
 
 var pjson = require('./package.json')
 console.log(pjson.name + ' v.' + pjson.version)
@@ -40,8 +40,6 @@ PIC_READ_PROPERTY = 'photo-orig'
 PIC_WRITE_PROPERTY = 'photo'
 
 var EntuLib = entulib(opts.USER_ID, opts.API_KEY, opts.HOSTNAME)
-var connection_counter = 0
-
 
 ENTU_URI = 'https://' + opts.HOSTNAME + '/'
 ENTU_API = ENTU_URI + 'api2/'
@@ -104,7 +102,7 @@ var fetchNextPage = function fetchNextPage(page) {
 
             if (PAGE_SIZE_LIMIT * page < result.count) {
                 var fetchIfReady = function fetchIfReady(page) {
-                        fetchNextPage(page)
+                    setTimeout(function() { fetchNextPage(page) }, 1*1000)
                 }
                 fetchIfReady(page + 1)
             } else {
@@ -118,7 +116,8 @@ var fetchNextPage = function fetchNextPage(page) {
     })
 }
 
-fetchNextPage(3800)
+fetchNextPage(4630)
+// fetchNextPage(4620)
 
 var MAX_DOWNLOAD_TIME = 60 * 60 // seconds
 var total_download_size = 0
@@ -127,12 +126,12 @@ var bytes_downloaded = 0
 var append_background = path.resolve(HOME_DIR, 'text_background.png')
 
 var fetchFile = function fetchFile(entity_id, file_id, file_name, exp_nr, nimetus, finalCB) {
-    EventEmitter.call(this)
-    var self = this
 
-    var t = setTimeout(function() {
-        self.emit('error', 'Error: ' + fetch_uri + ' timed out!', 95)
-    }, MAX_DOWNLOAD_TIME * 1000)
+    // EventEmitter.call(this)
+    // var self = this
+    // var t = setTimeout(function() {
+    //     self.emit('error', 'Error: ' + fetch_uri + ' timed out!', 95)
+    // }, MAX_DOWNLOAD_TIME * 1000)
 
     var fetch_uri = 'https://' + opts.HOSTNAME + '/api2/file-' + file_id
     var download_filename = path.resolve(TEMP_DIR, file_id + '.' + 'jpg')
@@ -163,10 +162,11 @@ var fetchFile = function fetchFile(entity_id, file_id, file_name, exp_nr, nimetu
                 // console.log('Progress: ' + file_name + ' - ' + helper.bytesToSize(total_download_size) + ' - ' + helper.bytesToSize(bytes_downloaded) + ' = ' + helper.bytesToSize(total_download_size - bytes_downloaded) )
             })
             response.on('end', function() {
+                console.log('Finished: ' + fetch_uri + ' - ' + response.statusCode )
                 if (response.statusCode === 200) {
                     // console.log('Finished: ' + fetch_uri + ' - ' + helper.bytesToSize(total_download_size) + ' - ' + helper.bytesToSize(bytes_downloaded) + ' = ' + helper.bytesToSize(total_download_size - bytes_downloaded) )
                 }
-                clearTimeout(t)
+                // clearTimeout(t)
             })
         })
     )
@@ -199,15 +199,15 @@ var fetchFile = function fetchFile(entity_id, file_id, file_name, exp_nr, nimetu
                             return
                         }
                         console.log('SUCCESS: ' + fetch_uri + ' ' + helper.bytesToSize(f.bytesWritten) + '.')
-                        finalCB(null)
                     })
+                    finalCB(null)
                 })
             })
         })
     })
 
 }
-util.inherits(fetchFile, EventEmitter)
+// util.inherits(fetchFile, EventEmitter)
 
 
 var pulse_cnt = 0

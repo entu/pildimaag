@@ -1,8 +1,9 @@
-var util            = require('util')
-var EventEmitter    = require('events').EventEmitter
+// var util            = require('util')
+// var EventEmitter    = require('events').EventEmitter
 
 var Queue = function Queue(limit) {
-    EventEmitter.call(this)
+    // EventEmitter.call(this)
+    // var self = this
     var increment = 0
     var queue = []
     var active = 0
@@ -37,10 +38,13 @@ var Queue = function Queue(limit) {
             queue.push({'id':increment, 'name':name, 'job_data':jobData, 'job_function':jobFunction, 'finished':false})
             console.log(Date().toString() + ' Adding ' + name + ' to queue position ' + queue.length)
             next()
+        },
+        stats: function() {
+            return {active:active, queue:queue}
         }
     }
 }
-util.inherits(Queue, EventEmitter)
+// util.inherits(Queue, EventEmitter)
 
 
 module.exports = Queue
