@@ -192,7 +192,6 @@ var fetchFile = function fetchFile(entity_id, file_id, file_name, exp_nr, nimetu
                         // setTimeout(function() { fetchFile(entity_id, file_id, file_name, exp_nr, nimetus) }, 10 * 1000)
                         return
                     }
-                    console.log('bytes written: ' + f.bytesWritten);
                     EntuLib.addFile(entity_id, PIC_READ_ENTITY + '-' + PIC_WRITE_PROPERTY, file_name, 'image/jpeg', f.bytesWritten, download_filename, function addFileCB(err, result) {
                         if (err) {
                             console.log('WARNING: addFileCB: ' + fetch_uri , err, result)
