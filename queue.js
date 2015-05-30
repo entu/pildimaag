@@ -6,11 +6,19 @@ var Queue = function Queue(limit) {
     // var self = this
     var increment = 0
     var queue = []
+    var active_jobs = {}
     var active = 0
+    var status = 'stopped'
     next = function next() {
+        if (status === 'stopped') {
+            console.log('Queue not started...')
+            return
+        }
         if (active < limit && queue.length > 0) {
             var job = queue.shift()
+            job.started = Date()
             active ++
+            active_jobs[job.id] = job
             console.log(Date().toString() + ' Start ' + job.name + ' from queue. Active/Queue size ' + active + '/' + queue.length)
             job.job_function(job.job_data, function finalCB(err) {
                 if (err) {
@@ -23,6 +31,7 @@ var Queue = function Queue(limit) {
                 }
                 job.finished = true
                 active --
+                delete active_jobs[job.id]
                 console.log(Date().toString() + ' Finished ' + job.name + '.')
                 next()
             })
@@ -40,7 +49,11 @@ var Queue = function Queue(limit) {
             next()
         },
         stats: function() {
-            return {active:active, queue:queue}
+            return {active:active, queue:queue.length, jobs:active_jobs}
+        },
+        start: function() {
+            status = 'started'
+            next()
         }
     }
 }

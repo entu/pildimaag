@@ -12,7 +12,9 @@ var entulib         = require('./entulib.js')
 var queue           = require('./queue.js')
 var helper          = require('./helper.js')
 
-var q = queue(5)
+QUEUE_SIZE = 5
+var q = queue(QUEUE_SIZE)
+q.start()
 
 var pjson = require('./package.json')
 console.log(pjson.name + ' v.' + pjson.version)
@@ -34,7 +36,7 @@ opts.HOSTNAME = 'okupatsioon.entu.ee'
 
 HOME_DIR = path.dirname(process.argv[1])
 TEMP_DIR = path.resolve(HOME_DIR, 'temp')
-PAGE_SIZE_LIMIT = 5
+PAGE_SIZE_LIMIT = 25
 PIC_READ_ENTITY = 'eksponaat'
 PIC_READ_PROPERTY = 'photo-orig'
 PIC_WRITE_PROPERTY = 'photo'
@@ -91,7 +93,7 @@ var fetchNextPage = function fetchNextPage(page) {
                                     'code_val':     code_value,
                                     'nimetus_val':  nimetus_value
                                 }
-                                q.add('Download of ' + photo_val.db_value, jobData, function jobFunction(jobData, finalCB) {
+                                q.add('Processing photo ' + photo_val.db_value, jobData, function jobFunction(jobData, finalCB) {
                                     fetchFile(jobData.eid, jobData.photo_db_val, jobData.photo_val, jobData.code_val, jobData.nimetus_val, finalCB)
                                 })
                             })
@@ -102,7 +104,14 @@ var fetchNextPage = function fetchNextPage(page) {
 
             if (PAGE_SIZE_LIMIT * page < result.count) {
                 var fetchIfReady = function fetchIfReady(page) {
-                    setTimeout(function() { fetchNextPage(page) }, 1*1000)
+                    console.log(Date().toString() + '=== Active jobs: ', q.stats().jobs)
+                    if (q.stats().active < QUEUE_SIZE) {
+                        console.log(Date().toString() + '=== Active/queued connections: ' + q.stats().active + '/' + q.stats().queue + '. Loading next page #' + page)
+                        fetchNextPage(page)
+                    } else {
+                        console.log(Date().toString() + '=== Active/queued connections: ' + q.stats().active + '/' + q.stats().queue + '. Postpone next page #' + page)
+                        setTimeout(function() { fetchIfReady(page) }, 10*1000)
+                    }
                 }
                 fetchIfReady(page + 1)
             } else {
@@ -116,8 +125,7 @@ var fetchNextPage = function fetchNextPage(page) {
     })
 }
 
-fetchNextPage(4630)
-// fetchNextPage(4620)
+fetchNextPage(1314)
 
 var MAX_DOWNLOAD_TIME = 60 * 60 // seconds
 var total_download_size = 0
@@ -139,14 +147,14 @@ var fetchFile = function fetchFile(entity_id, file_id, file_name, exp_nr, nimetu
     gm(request
         .get(fetch_uri)
         .on('error', function(err) {
-            console.log('WARNING: request: ' + fetch_uri , err)
+            console.log(Date().toString() + 'WARNING: request: ' + fetch_uri , err)
             setTimeout(function() { fetchFile(entity_id, file_id, file_name, exp_nr, nimetus, finalCB) }, 10 * 1000)
             return
         })
         .on('response', function response_handler( response ) {
             var filesize = response.headers['content-length']
             if (filesize === undefined) {
-                console.log('WARNING: filesize === undefined: ' + fetch_uri  + '.')
+                console.log(Date().toString() + 'WARNING: filesize === undefined: ' + fetch_uri  + '.')
                 // setTimeout(function() { fetchFile(entity_id, file_id, file_name, exp_nr, nimetus) }, 10 * 1000)
                 return
             } else {
@@ -162,7 +170,7 @@ var fetchFile = function fetchFile(entity_id, file_id, file_name, exp_nr, nimetu
                 // console.log('Progress: ' + file_name + ' - ' + helper.bytesToSize(total_download_size) + ' - ' + helper.bytesToSize(bytes_downloaded) + ' = ' + helper.bytesToSize(total_download_size - bytes_downloaded) )
             })
             response.on('end', function() {
-                console.log('Finished: ' + fetch_uri + ' - ' + response.statusCode )
+                console.log(Date().toString() + 'Finished: ' + fetch_uri + ' - ' + response.statusCode )
                 if (response.statusCode === 200) {
                     // console.log('Finished: ' + fetch_uri + ' - ' + helper.bytesToSize(total_download_size) + ' - ' + helper.bytesToSize(bytes_downloaded) + ' = ' + helper.bytesToSize(total_download_size - bytes_downloaded) )
                 }
@@ -180,7 +188,7 @@ var fetchFile = function fetchFile(entity_id, file_id, file_name, exp_nr, nimetu
             .drawText(0, 15, 'Okupatsioonide Muuseum #' + exp_nr + '\n' + nimetus + '\nokupatsioon.entu.ee', 'south')
             .stream(function(err, stdout, stderr) {
                 if (err) {
-                    console.log('WARNING: bm.stream: ' + fetch_uri , err)
+                    console.log(Date().toString() + 'WARNING: bm.stream: ' + fetch_uri , err)
                     // setTimeout(function() { fetchFile(entity_id, file_id, file_name, exp_nr, nimetus) }, 10 * 1000)
                     return
                 }
@@ -188,17 +196,19 @@ var fetchFile = function fetchFile(entity_id, file_id, file_name, exp_nr, nimetu
                 stdout.pipe(f)
                 f.on('finish', function() {
                     if (f.bytesWritten === 0) {
-                        console.log('WARNING: f.bytesWritten === 0: ' + fetch_uri  + '.')
+                        console.log(Date().toString() + 'WARNING: f.bytesWritten === 0: ' + fetch_uri  + '.')
                         // setTimeout(function() { fetchFile(entity_id, file_id, file_name, exp_nr, nimetus) }, 10 * 1000)
                         return
                     }
                     EntuLib.addFile(entity_id, PIC_READ_ENTITY + '-' + PIC_WRITE_PROPERTY, file_name, 'image/jpeg', f.bytesWritten, download_filename, function addFileCB(err, result) {
                         if (err) {
-                            console.log('WARNING: addFileCB: ' + fetch_uri , err, result)
+                            console.log(Date().toString() + 'WARNING: addFileCB: ' + fetch_uri , err, result)
                             setTimeout(function() { fetchFile(entity_id, file_id, file_name, exp_nr, nimetus, finalCB) }, 10 * 1000)
                             return
                         }
-                        console.log('SUCCESS: ' + fetch_uri + ' ' + helper.bytesToSize(f.bytesWritten) + '.')
+                        console.log(Date().toString() + 'SUCCESS: ' + fetch_uri + ' ' + helper.bytesToSize(f.bytesWritten) + '.')
+                        f.end()
+                        fs.unlink(download_filename)
                     })
                     finalCB(null)
                 })
