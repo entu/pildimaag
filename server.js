@@ -12,12 +12,14 @@ var entulib         = require('./entulib.js')
 var queue           = require('./queue.js')
 var helper          = require('./helper.js')
 
-QUEUE_SIZE = 5
-var q = queue(QUEUE_SIZE)
-q.start()
 
 var pjson = require('./package.json')
-console.log(pjson.name + ' v.' + pjson.version)
+console.log('----==== ' + pjson.name + ' v.' + pjson.version + ' ====----')
+
+PAGE_SIZE_LIMIT = 250
+QUEUE_SIZE = 10
+FIRST_PAGE = 1
+var q = queue(QUEUE_SIZE)
 
 var opts = nomnom.options({
     USER_ID: {
@@ -36,7 +38,6 @@ opts.HOSTNAME = 'okupatsioon.entu.ee'
 
 HOME_DIR = path.dirname(process.argv[1])
 TEMP_DIR = path.resolve(HOME_DIR, 'temp')
-PAGE_SIZE_LIMIT = 25
 PIC_READ_ENTITY = 'eksponaat'
 PIC_READ_PROPERTY = 'photo-orig'
 PIC_WRITE_PROPERTY = 'photo'
@@ -63,11 +64,11 @@ var fetchNextPage = function fetchNextPage(page) {
                 EntuLib.getEntity(entity.id, function getEntityCB(err, result) {
                     if (err) {
                         console.log('getEntityCB: Can\'t reach Entu', err, result)
-                        process.exit(99)
+                        return
                     }
                     else if (result.error !== undefined) {
                         console.log(result.error, 'Failed to fetch from Entu.')
-                        process.exit(99)
+                        return
                     } else {
                         var photo_property = result.result.properties[PIC_READ_PROPERTY]
                         var thumb_property = result.result.properties[PIC_WRITE_PROPERTY]
@@ -102,20 +103,22 @@ var fetchNextPage = function fetchNextPage(page) {
                 })
             })
 
+            q.start()
+
             if (PAGE_SIZE_LIMIT * page < result.count) {
                 var fetchIfReady = function fetchIfReady(page) {
-                    console.log(Date().toString() + '=== Active jobs: ', q.stats().jobs)
+                    // console.log(Date().toString() + '=== Active jobs: ', q.stats().jobs)
                     if (q.stats().active < QUEUE_SIZE) {
-                        console.log(Date().toString() + '=== Active/queued connections: ' + q.stats().active + '/' + q.stats().queue + '. Loading next page #' + page)
+                        console.log(Date().toString() + '=== Active/queued connections: ' + q.stats().active + '/' + q.stats().queue + '. Loading next page #' + page + '/' + Math.ceil(result.count/PAGE_SIZE_LIMIT))
                         fetchNextPage(page)
                     } else {
-                        console.log(Date().toString() + '=== Active/queued connections: ' + q.stats().active + '/' + q.stats().queue + '. Postpone next page #' + page)
+                        console.log(Date().toString() + '=== Active/queued connections: ' + q.stats().active + '/' + q.stats().queue + '. Postpone next page #' + page + '/' + Math.ceil(result.count/PAGE_SIZE_LIMIT))
                         setTimeout(function() { fetchIfReady(page) }, 10*1000)
                     }
                 }
                 fetchIfReady(page + 1)
             } else {
-                console.log('No more pages for today.')
+                fetchNextPage(1)
                 // process.exit(0)
                 // setTimeout(function() { fetchNextPage(1) }, 1000 * 10 * 1 * 1)
                 // setTimeout(function() { fetchNextPage(1) }, 1000 * 60 * 60 * 24)
@@ -125,7 +128,7 @@ var fetchNextPage = function fetchNextPage(page) {
     })
 }
 
-fetchNextPage(1314)
+fetchNextPage(FIRST_PAGE)
 
 var MAX_DOWNLOAD_TIME = 60 * 60 // seconds
 var total_download_size = 0

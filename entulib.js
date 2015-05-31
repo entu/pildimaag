@@ -158,7 +158,16 @@ var EntuLib = function EntuLib(entu_user_id, entu_user_key, entu_url) {
                     process.exit(99)
                 }
 
-                formData = data.result.s3.data
+                var formData
+                try {
+                    formData = data.result.s3.data
+                } catch (err) {
+                    console.log('EntuLib err: ', entu_query, data)
+                    console.log('EntuLib err: ', err)
+                    // callback(err, str)
+                    // return
+                }
+                // formData = data.result.s3.data
                 formData['file'] = fs.createReadStream(filepath)
 
                 request.post({url: data.result.s3.url, formData: formData}, function optionalCallback(err, httpResponse, body) {
