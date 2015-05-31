@@ -16,7 +16,7 @@ var helper          = require('./helper.js')
 var pjson = require('./package.json')
 console.log('----==== ' + pjson.name + ' v.' + pjson.version + ' ====----')
 
-PAGE_SIZE_LIMIT = 50000 // 25
+PAGE_SIZE_LIMIT = 500 // 25
 QUEUE_SIZE = 5
 FIRST_PAGE = 1 // 925
 var q = queue(QUEUE_SIZE)
@@ -41,7 +41,7 @@ TEMP_DIR = path.resolve(HOME_DIR, 'temp')
 PIC_READ_ENTITY = 'eksponaat'
 PIC_READ_PROPERTY = 'photo-orig'
 PIC_WRITE_PROPERTY = 'photo'
-VALID_EXTENSIONS = ['.jpg', '.tif', '.tiff', '.png', '.jpeg', '.gif']
+VALID_EXTENSIONS = ['.jpg', '.pdf', '.tif', '.tiff', '.png', '.jpeg', '.gif']
 
 var EntuLib = entulib(opts.USER_ID, opts.API_KEY, opts.HOSTNAME)
 
@@ -58,7 +58,7 @@ var fetchNextPage = function fetchNextPage(page) {
             setTimeout(function() { fetchNextPage(page) }, 10*1000)
         }
         else if (result.error !== undefined) {
-            console.log (result.error, 'Failed to fetch from Entu.')
+            console.log (result, 'Failed to fetch from Entu.')
             setTimeout(function() { fetchNextPage(page) }, 10*1000)
         } else {
             result.result.forEach(function entityLoop(entity) {
@@ -108,6 +108,8 @@ var fetchNextPage = function fetchNextPage(page) {
                 })
             })
 
+            console.log(Date().toString() + '=== Sending start command to queue')
+            console.log(Date().toString() + '=== Active/queued connections: ' + q.stats().active + '/' + q.stats().queue)
             q.start()
 
             if (PAGE_SIZE_LIMIT * page < result.count) {
@@ -126,10 +128,9 @@ var fetchNextPage = function fetchNextPage(page) {
                 }
                 fetchIfReady(page + 1)
             } else {
-                fetchNextPage(1)
+                console.log(Date().toString() + '=== New roundtrip. Active jobs: ', q.stats().jobs)
                 // process.exit(0)
-                // setTimeout(function() { fetchNextPage(1) }, 1000 * 10 * 1 * 1)
-                // setTimeout(function() { fetchNextPage(1) }, 1000 * 60 * 60 * 24)
+                setTimeout(function() { fetchNextPage(1) }, 1000 * 60 * 60 * 1)
             }
 
         }
@@ -138,19 +139,12 @@ var fetchNextPage = function fetchNextPage(page) {
 
 fetchNextPage(FIRST_PAGE)
 
-var MAX_DOWNLOAD_TIME = 60 * 60 // seconds
 var total_download_size = 0
 var bytes_downloaded = 0
 
 var append_background = path.resolve(HOME_DIR, 'text_background.png')
 
 var fetchFile = function fetchFile(entity_id, file_id, file_name, exp_nr, nimetus, finalCB) {
-
-    // EventEmitter.call(this)
-    // var self = this
-    // var t = setTimeout(function() {
-    //     self.emit('error', 'Error: ' + fetch_uri + ' timed out!', 95)
-    // }, MAX_DOWNLOAD_TIME * 1000)
 
     var fetch_uri = 'https://' + opts.HOSTNAME + '/api2/file-' + file_id
     var download_filename = path.resolve(TEMP_DIR, file_id + '.' + 'jpg')
@@ -185,7 +179,6 @@ var fetchFile = function fetchFile(entity_id, file_id, file_name, exp_nr, nimetu
                 if (response.statusCode === 200) {
                     // console.log('Finished: ' + fetch_uri + ' - ' + helper.bytesToSize(total_download_size) + ' - ' + helper.bytesToSize(bytes_downloaded) + ' = ' + helper.bytesToSize(total_download_size - bytes_downloaded) )
                 }
-                // clearTimeout(t)
             })
         })
     )
