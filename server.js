@@ -16,9 +16,9 @@ var helper          = require('./helper.js')
 var pjson = require('./package.json')
 console.log('----==== ' + pjson.name + ' v.' + pjson.version + ' ====----')
 
-PAGE_SIZE_LIMIT = 250
-QUEUE_SIZE = 10
-FIRST_PAGE = 1
+PAGE_SIZE_LIMIT = 50000 // 25
+QUEUE_SIZE = 5
+FIRST_PAGE = 1 // 925
 var q = queue(QUEUE_SIZE)
 
 var opts = nomnom.options({
@@ -41,6 +41,7 @@ TEMP_DIR = path.resolve(HOME_DIR, 'temp')
 PIC_READ_ENTITY = 'eksponaat'
 PIC_READ_PROPERTY = 'photo-orig'
 PIC_WRITE_PROPERTY = 'photo'
+VALID_EXTENSIONS = ['.jpg', '.tif', '.tiff', '.png', '.jpeg', '.gif']
 
 var EntuLib = entulib(opts.USER_ID, opts.API_KEY, opts.HOSTNAME)
 
@@ -76,6 +77,10 @@ var fetchNextPage = function fetchNextPage(page) {
                         var nimetus_value = result.result.properties['tag'].values ? result.result.properties['tag'].values[0].value : ''
                         if (photo_property.values) {
                             photo_property.values.forEach(function photoLoop(photo_val) {
+                                if (VALID_EXTENSIONS.indexOf(path.extname(photo_val.value).toLowerCase()) === -1) {
+                                    console.log('IGNORE: file with unsupported extension: ' + path.extname(photo_val.value), photo_val)
+                                    return
+                                }
                                 var thumb_is_present = false
                                 if (thumb_property.values) {
                                     thumb_property.values.forEach(function thumbLoop(thumb_val) {
@@ -107,10 +112,13 @@ var fetchNextPage = function fetchNextPage(page) {
 
             if (PAGE_SIZE_LIMIT * page < result.count) {
                 var fetchIfReady = function fetchIfReady(page) {
-                    // console.log(Date().toString() + '=== Active jobs: ', q.stats().jobs)
-                    if (q.stats().active < QUEUE_SIZE) {
-                        console.log(Date().toString() + '=== Active/queued connections: ' + q.stats().active + '/' + q.stats().queue + '. Loading next page #' + page + '/' + Math.ceil(result.count/PAGE_SIZE_LIMIT))
+                    console.log(Date().toString() + '=== Active jobs: ', q.stats().jobs)
+                    if (q.stats().active === 0) {
+                        console.log(Date().toString() + '=== Loading next page #' + page + '/' + Math.ceil(result.count/PAGE_SIZE_LIMIT))
                         fetchNextPage(page)
+                    } else if (q.stats().active < QUEUE_SIZE) {
+                        console.log(Date().toString() + '=== Active/queued connections: ' + q.stats().active + '/' + q.stats().queue + '. Loading next page #' + page + '/' + Math.ceil(result.count/PAGE_SIZE_LIMIT))
+                        setTimeout(function() { fetchNextPage(page) }, 1000)
                     } else {
                         console.log(Date().toString() + '=== Active/queued connections: ' + q.stats().active + '/' + q.stats().queue + '. Postpone next page #' + page + '/' + Math.ceil(result.count/PAGE_SIZE_LIMIT))
                         setTimeout(function() { fetchIfReady(page) }, 10*1000)
