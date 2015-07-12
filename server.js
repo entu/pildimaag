@@ -17,9 +17,9 @@ var helper          = require('./helper.js')
 var pjson = require('./package.json')
 console.log('----==== ' + pjson.name + ' v.' + pjson.version + ' ====----')
 
-PAGE_SIZE_LIMIT = 100
+PAGE_SIZE_LIMIT = 1000
 QUEUE_SIZE = 3
-FIRST_PAGE = 1
+FIRST_PAGE = 0
 // FIRST_PAGE = 385; PAGE_SIZE_LIMIT = 50
 var q = queue(QUEUE_SIZE)
 
@@ -34,6 +34,12 @@ var opts = nomnom.options({
         metavar  : 'STRING',
         required : true,
         help     : 'Authentication key'
+    },
+    ROUNDTRIP_MINUTES: {
+        abbr     : 'r',
+        metavar  : 'STRING',
+        required : true,
+        help     : 'Roundtrip interval'
     },
 }).parse()
 opts.HOSTNAME = 'okupatsioon.entu.ee'
@@ -84,11 +90,11 @@ var fetchNextPage = function fetchNextPage(page) {
                         var thumb_cnt = 0
                         if (photo_property.values) {
                             photo_property.values.forEach(function photoLoop(photo_val) {
-                                orig_cnt ++
                                 if (VALID_EXTENSIONS.indexOf(path.extname(photo_val.value).toLowerCase()) === -1) {
                                     console.log(Date().toString() + ' IGNORE: file with unsupported extension: ' + path.extname(photo_val.value), photo_val)
                                     return
                                 }
+                                orig_cnt ++
                                 to_create[photo_val.value] = photo_val
                             })
                         }
@@ -105,13 +111,13 @@ var fetchNextPage = function fetchNextPage(page) {
                         }
                         if (orig_cnt > 0 || thumb_cnt > 0) {
                             console.log(Date().toString() + ' Work on eid:' + entity.id, {"to_create":orig_cnt, "to_delete":thumb_cnt})
-                            for (var key in to_delete) {
-                                EntuLib.removeProperty(entity.id, PIC_WRITE_PROPERTY, to_delete[key].id, function() {
-                                    console.log(Date().toString() + ' Removed thumb ' + to_delete[key].id + ' from entity ' + entity.id)
+                            for (var delete_key in to_delete) {
+                                EntuLib.removeProperty(entity.id, PIC_WRITE_PROPERTY, to_delete[delete_key].id, function() {
+                                    console.log(Date().toString() + ' Removed thumb ' + to_delete[delete_key].id + ' from entity ' + entity.id)
                                 })
                             }
-                            for (var key in to_create) {
-                                var photo_val = to_create[key]
+                            for (var create_key in to_create) {
+                                var photo_val = to_create[create_key]
                                 var jobData = {
                                     'eid':          entity.id,
                                     'photo_db_val': photo_val.db_value,
@@ -152,9 +158,8 @@ var fetchNextPage = function fetchNextPage(page) {
                 }
                 fetchIfReady(page + 1)
             } else {
-                console.log(Date().toString() + '=== New roundtrip. Active jobs: ', q.stats().jobs)
-                // process.exit(0)
-                setTimeout(function() { fetchNextPage(1) }, 1000 * 60 * 60 * 1)
+                console.log(Date().toString() + '=== New roundtrip in ' + helper.msToTime(1000 * 60 * opts.ROUNDTRIP_MINUTES) + '. Active jobs: ', q.stats().jobs)
+                setTimeout(function() { fetchNextPage(1) }, 1000 * 60 * opts.ROUNDTRIP_MINUTES)
             }
 
         }
@@ -207,7 +212,7 @@ var fetchFile = function fetchFile(entity_id, file_id, file_name, exp_nr, nimetu
                                 console.log(Date().toString() + ' SKIPPING OVER: addFileCB: ' + file_name + ' ' + converted_filepath, err, result)
                                 return
                             }
-                            console.log(Date().toString() + ' SUCCESS: ' + original_filepath + ' ' + helper.bytesToSize(converted_file_stream.bytesWritten) + '.')
+                            console.log(Date().toString() + ' Finished upload of ' + original_filepath + ' ' + helper.bytesToSize(converted_file_stream.bytesWritten) + '.')
                             fs.unlink(original_filepath)
                             fs.unlink(converted_filepath)
                         })
@@ -234,7 +239,7 @@ BUILD, RUN and LOG
 docker kill puhh
 docker rm puhh
 docker build -t mitselek/pildimaag ~/Documents/github/pildimaag/
-docker run -d -v ~/Documents/github/pildimaag/:/pildimaag/ --name puhh mitselek/pildimaag:latest -e 155005 -k 378c2VuY
+docker run -d -v ~/Documents/github/pildimaag/:/pildimaag/ --name puhh mitselek/pildimaag:latest -e <entity_id> -k <API key> -r <minutes>
 docker logs -f puhh
 
 RESTART and LOG
