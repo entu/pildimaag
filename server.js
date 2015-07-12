@@ -20,6 +20,7 @@ console.log('----==== ' + pjson.name + ' v.' + pjson.version + ' ====----')
 PAGE_SIZE_LIMIT = 1000
 QUEUE_SIZE = 3
 FIRST_PAGE = 0
+SLEEPING = false
 // FIRST_PAGE = 385; PAGE_SIZE_LIMIT = 50
 var q = queue(QUEUE_SIZE)
 
@@ -159,6 +160,8 @@ var fetchNextPage = function fetchNextPage(page) {
                 fetchIfReady(page + 1)
             } else {
                 console.log(Date().toString() + '=== New roundtrip in ' + helper.msToTime(1000 * 60 * opts.ROUNDTRIP_MINUTES) + '. Active jobs: ', q.stats().jobs)
+                setTimeout(function() { SLEEPING = false }, 1000 * 60 * opts.ROUNDTRIP_MINUTES)
+                SLEEPING = true
                 setTimeout(function() { fetchNextPage(1) }, 1000 * 60 * opts.ROUNDTRIP_MINUTES)
             }
 
@@ -167,8 +170,6 @@ var fetchNextPage = function fetchNextPage(page) {
 }
 
 fetchNextPage(FIRST_PAGE)
-
-
 
 
 
@@ -227,8 +228,15 @@ var fetchFile = function fetchFile(entity_id, file_id, file_name, exp_nr, nimetu
 
 var pulse_cnt = 0
 var pulse = function pulse(ms) {
-    console.log('tick ' + (pulse_cnt ++))
-    setTimeout(function() { pulse(ms) }, ms)
+    var hibernation_factor = 20
+    if (SLEEPING) {
+        console.log(Date().toString() + ' ...zzzZZ')
+        pulse_cnt += hibernation_factor
+        setTimeout(function() { pulse(ms) }, ms * hibernation_factor)
+    } else {
+        console.log(Date().toString() + ' tick ' + (pulse_cnt ++))
+        setTimeout(function() { pulse(ms) }, ms)
+    }
 }
 pulse(60 * 1000)
 
