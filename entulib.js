@@ -1,8 +1,9 @@
-var https   = require('https')
-var crypto = require('crypto')
+var https       = require('https')
+var crypto      = require('crypto')
 var querystring = require('querystring')
-var fs       = require('fs')
-var request = require('request')
+var fs          = require('fs')
+var request     = require('request')
+// var Readable    = require('stream').Readable;
 
 var EntuLib = function EntuLib(entu_user_id, entu_user_key, entu_url) {
 
@@ -76,6 +77,7 @@ var EntuLib = function EntuLib(entu_user_id, entu_user_key, entu_url) {
         }
         hrequest.end()
     }
+
 
     return {
         getEntity: function (entity_id, callback) {
@@ -177,6 +179,11 @@ var EntuLib = function EntuLib(entu_user_id, entu_user_key, entu_url) {
                     callback(null, 'Upload successful!')
                 })
             })
+        },
+        getFileStream: function (file_id, callback) {
+            var data = __create_policy()
+            var path = 'https://' + entu_url + API_VERSION + 'file-' + file_id + '?' + data
+            return request(path)
         }
     }
 }

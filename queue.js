@@ -38,7 +38,7 @@ var Queue = function Queue(limit) {
         } else if (active >= limit) {
             console.log(Date().toString() + ' Active queue full. Active/Queue size ' + active + '/' + queue.length)
         } else if (queue.length === 0) {
-            console.log(Date().toString() + ' queue empty...')
+            // console.log(Date().toString() + ' queue empty...')
         }
     }
     return {

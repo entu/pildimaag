@@ -1,10 +1,10 @@
 var nomnom          = require('nomnom')
 var request         = require('request')
-// var util            = require('util')
-// var EventEmitter    = require('events').EventEmitter
+var util            = require('util')
 var fs              = require('fs')
 var path            = require('path')
 var stream          = require('stream')
+var Transform       = require('stream').Transform
 
 var gm              = require('gm')
 
@@ -13,12 +13,14 @@ var queue           = require('./queue.js')
 var helper          = require('./helper.js')
 
 
+
 var pjson = require('./package.json')
 console.log('----==== ' + pjson.name + ' v.' + pjson.version + ' ====----')
 
-PAGE_SIZE_LIMIT = 500 // 25
-QUEUE_SIZE = 5
-FIRST_PAGE = 1 // 925
+PAGE_SIZE_LIMIT = 100
+QUEUE_SIZE = 3
+FIRST_PAGE = 1
+// FIRST_PAGE = 385; PAGE_SIZE_LIMIT = 50
 var q = queue(QUEUE_SIZE)
 
 var opts = nomnom.options({
@@ -75,23 +77,41 @@ var fetchNextPage = function fetchNextPage(page) {
                         var thumb_property = result.result.properties[PIC_WRITE_PROPERTY]
                         var code_value = result.result.properties['code'].values ? result.result.properties['code'].values[0].value : ''
                         var nimetus_value = result.result.properties['tag'].values ? result.result.properties['tag'].values[0].value : ''
+
+                        var to_create = {}
+                        var to_delete = {}
+                        var orig_cnt = 0
+                        var thumb_cnt = 0
                         if (photo_property.values) {
                             photo_property.values.forEach(function photoLoop(photo_val) {
+                                orig_cnt ++
                                 if (VALID_EXTENSIONS.indexOf(path.extname(photo_val.value).toLowerCase()) === -1) {
-                                    console.log('IGNORE: file with unsupported extension: ' + path.extname(photo_val.value), photo_val)
+                                    console.log(Date().toString() + ' IGNORE: file with unsupported extension: ' + path.extname(photo_val.value), photo_val)
                                     return
                                 }
-                                var thumb_is_present = false
-                                if (thumb_property.values) {
-                                    thumb_property.values.forEach(function thumbLoop(thumb_val) {
-                                        if (thumb_val.value === photo_val.value) {
-                                            thumb_is_present = true
-                                        }
-                                    })
+                                to_create[photo_val.value] = photo_val
+                            })
+                        }
+                        if (thumb_property.values) {
+                            thumb_property.values.forEach(function thumbLoop(thumb_val) {
+                                if (to_create[thumb_val.value]) {
+                                    delete to_create[thumb_val.value]
+                                    orig_cnt --
+                                } else {
+                                    to_delete[thumb_val.value] = thumb_val
+                                    thumb_cnt ++
                                 }
-                                if (thumb_is_present) {
-                                    return
-                                }
+                            })
+                        }
+                        if (orig_cnt > 0 || thumb_cnt > 0) {
+                            console.log(Date().toString() + ' Work on eid:' + entity.id, {"to_create":orig_cnt, "to_delete":thumb_cnt})
+                            for (var key in to_delete) {
+                                EntuLib.removeProperty(entity.id, PIC_WRITE_PROPERTY, to_delete[key].id, function() {
+                                    console.log(Date().toString() + ' Removed thumb ' + to_delete[key].id + ' from entity ' + entity.id)
+                                })
+                            }
+                            for (var key in to_create) {
+                                var photo_val = to_create[key]
                                 var jobData = {
                                     'eid':          entity.id,
                                     'photo_db_val': photo_val.db_value,
@@ -100,29 +120,33 @@ var fetchNextPage = function fetchNextPage(page) {
                                     'nimetus_val':  nimetus_value
                                 }
                                 q.add('Processing photo ' + photo_val.db_value, jobData, function jobFunction(jobData, finalCB) {
+                                    // setTimeout(finalCB, 5*1000)
                                     fetchFile(jobData.eid, jobData.photo_db_val, jobData.photo_val, jobData.code_val, jobData.nimetus_val, finalCB)
                                 })
-                            })
+                            }
                         }
                     }
                 })
             })
 
-            console.log(Date().toString() + '=== Sending start command to queue')
-            console.log(Date().toString() + '=== Active/queued connections: ' + q.stats().active + '/' + q.stats().queue)
+            if (q.stats().active) {
+                console.log(Date().toString() + '=== Active/queued connections: ' + q.stats().active + '/' + q.stats().queue)
+            }
             q.start()
 
             if (PAGE_SIZE_LIMIT * page < result.count) {
                 var fetchIfReady = function fetchIfReady(page) {
-                    console.log(Date().toString() + '=== Active jobs: ', q.stats().jobs)
+                    if (Object.keys(q.stats().jobs).length) {
+                        // console.log(Date().toString() + '=== Active jobs: ', q.stats().jobs)
+                    }
                     if (q.stats().active === 0) {
-                        console.log(Date().toString() + '=== Loading next page #' + page + '/' + Math.ceil(result.count/PAGE_SIZE_LIMIT))
+                        console.log(Date().toString() + '=== Loading page #' + page + '/' + Math.ceil(result.count/PAGE_SIZE_LIMIT))
                         fetchNextPage(page)
                     } else if (q.stats().active < QUEUE_SIZE) {
                         console.log(Date().toString() + '=== Active/queued connections: ' + q.stats().active + '/' + q.stats().queue + '. Loading next page #' + page + '/' + Math.ceil(result.count/PAGE_SIZE_LIMIT))
                         setTimeout(function() { fetchNextPage(page) }, 1000)
                     } else {
-                        console.log(Date().toString() + '=== Active/queued connections: ' + q.stats().active + '/' + q.stats().queue + '. Postpone next page #' + page + '/' + Math.ceil(result.count/PAGE_SIZE_LIMIT))
+                        // console.log(Date().toString() + '=== Active/queued connections: ' + q.stats().active + '/' + q.stats().queue + '. Postpone next page #' + page + '/' + Math.ceil(result.count/PAGE_SIZE_LIMIT))
                         setTimeout(function() { fetchIfReady(page) }, 10*1000)
                     }
                 }
@@ -139,89 +163,61 @@ var fetchNextPage = function fetchNextPage(page) {
 
 fetchNextPage(FIRST_PAGE)
 
+
+
+
+
 var total_download_size = 0
 var bytes_downloaded = 0
 
 var append_background = path.resolve(HOME_DIR, 'text_background.png')
 
 var fetchFile = function fetchFile(entity_id, file_id, file_name, exp_nr, nimetus, finalCB) {
+    // console.log('fetchFile ', entity_id, file_id, file_name, exp_nr, nimetus)
+    var original_filepath = path.resolve(TEMP_DIR, file_id + '.' + file_name)
+    var original_file_stream = fs.createWriteStream(original_filepath)
+    var converted_filepath = path.resolve(TEMP_DIR, file_id + '.' + 'jpg')
+    var converted_file_stream = fs.createWriteStream(converted_filepath)
 
-    var fetch_uri = 'https://' + opts.HOSTNAME + '/api2/file-' + file_id
-    var download_filename = path.resolve(TEMP_DIR, file_id + '.' + 'jpg')
+    var validatorTransform = new Transform()
+    validatorTransform._transform = function(data, encoding, done) {
+        this.push(data)
+        original_file_stream.write(data)
+        done()
+    }
 
-    gm(request
-        .get(fetch_uri)
-        .on('error', function(err) {
-            console.log(Date().toString() + 'WARNING: request: ' + fetch_uri , err)
-            setTimeout(function() { fetchFile(entity_id, file_id, file_name, exp_nr, nimetus, finalCB) }, 10 * 1000)
-            return
-        })
-        .on('response', function response_handler( response ) {
-            var filesize = response.headers['content-length']
-            if (filesize === undefined) {
-                console.log(Date().toString() + 'WARNING: filesize === undefined: ' + fetch_uri  + '.')
-                // setTimeout(function() { fetchFile(entity_id, file_id, file_name, exp_nr, nimetus) }, 10 * 1000)
-                return
-            } else {
-                total_download_size += Number(filesize)
-            }
-            response.on('data', function(chunk) {
-                bytes_downloaded += chunk.length
-                if (filesize === undefined) {
-                    // console.log('WARNING: filesize === undefined:' + fetch_uri + ' loaded chunk of ' + chunk.length + ' bytes.')
-                    total_download_size += chunk.length
-                    // console.log(chunk.toString('utf8'))
-                }
-                // console.log('Progress: ' + file_name + ' - ' + helper.bytesToSize(total_download_size) + ' - ' + helper.bytesToSize(bytes_downloaded) + ' = ' + helper.bytesToSize(total_download_size - bytes_downloaded) )
-            })
-            response.on('end', function() {
-                console.log(Date().toString() + 'Finished: ' + fetch_uri + ' - ' + response.statusCode )
-                if (response.statusCode === 200) {
-                    // console.log('Finished: ' + fetch_uri + ' - ' + helper.bytesToSize(total_download_size) + ' - ' + helper.bytesToSize(bytes_downloaded) + ' = ' + helper.bytesToSize(total_download_size - bytes_downloaded) )
-                }
-            })
-        })
-    )
-    .resize(800, 530)
+    gm(EntuLib.getFileStream(file_id).pipe(validatorTransform))
     .stream('jpg', function(err, stdout, stderr) {
         gm(stdout)
-        .append(append_background)
-        // .append(gm(240, 70))
-        .stream(function(err, stdout, stderr) {
+        .resize(800, 530)
+        .rotate('#ffffffff', 0)
+        .stream('jpg', function(err, stdout, stderr) {
             gm(stdout)
-            .drawText(0, 15, 'Okupatsioonide Muuseum #' + exp_nr + '\n' + nimetus + '\nokupatsioon.entu.ee', 'south')
+            .background('#ffffff')
+            .append(append_background)
             .stream(function(err, stdout, stderr) {
-                if (err) {
-                    console.log(Date().toString() + 'WARNING: bm.stream: ' + fetch_uri , err)
-                    // setTimeout(function() { fetchFile(entity_id, file_id, file_name, exp_nr, nimetus) }, 10 * 1000)
-                    return
-                }
-                var f = fs.createWriteStream(download_filename)
-                stdout.pipe(f)
-                f.on('finish', function() {
-                    if (f.bytesWritten === 0) {
-                        console.log(Date().toString() + 'WARNING: f.bytesWritten === 0: ' + fetch_uri  + '.')
-                        // setTimeout(function() { fetchFile(entity_id, file_id, file_name, exp_nr, nimetus) }, 10 * 1000)
-                        return
-                    }
-                    EntuLib.addFile(entity_id, PIC_READ_ENTITY + '-' + PIC_WRITE_PROPERTY, file_name, 'image/jpeg', f.bytesWritten, download_filename, function addFileCB(err, result) {
-                        if (err) {
-                            console.log(Date().toString() + 'WARNING: addFileCB: ' + fetch_uri , err, result)
-                            setTimeout(function() { fetchFile(entity_id, file_id, file_name, exp_nr, nimetus, finalCB) }, 10 * 1000)
-                            return
-                        }
-                        console.log(Date().toString() + 'SUCCESS: ' + fetch_uri + ' ' + helper.bytesToSize(f.bytesWritten) + '.')
-                        f.end()
-                        fs.unlink(download_filename)
+                gm(stdout)
+                .drawText(0, 15, 'Okupatsioonide Muuseum #' + exp_nr + '\n' + nimetus + '\nokupatsioon.entu.ee', 'south')
+                .stream(function(err, stdout, stderr) {
+                    stdout.pipe(converted_file_stream)
+                    stdout.on('end', function() {
+                        // setTimeout(finalCB, 10*1000); return; // For dry-run purposes
+                        EntuLib.addFile(entity_id, PIC_READ_ENTITY + '-' + PIC_WRITE_PROPERTY, file_name, 'image/jpeg', converted_file_stream.bytesWritten, converted_filepath, function addFileCB(err, result) {
+                            if (err) {
+                                console.log(Date().toString() + ' SKIPPING OVER: addFileCB: ' + file_name + ' ' + converted_filepath, err, result)
+                                return
+                            }
+                            console.log(Date().toString() + ' SUCCESS: ' + original_filepath + ' ' + helper.bytesToSize(converted_file_stream.bytesWritten) + '.')
+                            fs.unlink(original_filepath)
+                            fs.unlink(converted_filepath)
+                        })
+                        finalCB()
                     })
-                    finalCB(null)
                 })
             })
         })
     })
-
 }
-// util.inherits(fetchFile, EventEmitter)
 
 
 var pulse_cnt = 0
