@@ -1,0 +1,22 @@
+[Unit]
+Description=Okumuuseumi pildimaag
+After=etcd.service
+After=docker.service
+
+[Service]
+TimeoutStartSec=0
+KillMode=none
+EnvironmentFile=/etc/environment
+ExecStartPre=-/usr/bin/docker kill pildimaag
+ExecStartPre=-/usr/bin/docker rm pildimaag
+ExecStartPre=/usr/bin/docker pull mitselek/pildimaag
+ExecStart=/usr/bin/docker run \
+          --name="pildimaag" \
+          -e "PM_ENTITY=155005" \
+          -e "PM_KEY=ABCDEF" \
+          -e "PM_NIGHT_MINUTES=420" \
+          mitselek/pildimaag
+ExecStop=/usr/bin/docker stop pildimaag
+
+[X-Fleet]
+Conflicts=pildimaag

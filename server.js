@@ -1,9 +1,6 @@
-var nomnom          = require('nomnom')
 var request         = require('request')
-var util            = require('util')
 var fs              = require('fs')
 var path            = require('path')
-var stream          = require('stream')
 var Transform       = require('stream').Transform
 
 var gm              = require('gm')
@@ -19,32 +16,8 @@ console.log('----==== ' + pjson.name + ' v.' + pjson.version + ' ====----')
 
 PAGE_SIZE_LIMIT = 1000
 QUEUE_SIZE = 3
-FIRST_PAGE = 0
+FIRST_PAGE = 36
 SLEEPING = false
-// FIRST_PAGE = 385; PAGE_SIZE_LIMIT = 50
-var q = queue(QUEUE_SIZE)
-
-var opts = nomnom.options({
-    USER_ID: {
-        abbr     : 'e',
-        required : true,
-        help     : 'Entity ID for Entu API user'
-    },
-    API_KEY: {
-        abbr     : 'k',
-        metavar  : 'STRING',
-        required : true,
-        help     : 'Authentication key'
-    },
-    ROUNDTRIP_MINUTES: {
-        abbr     : 'r',
-        metavar  : 'STRING',
-        required : true,
-        help     : 'Roundtrip interval'
-    },
-}).parse()
-opts.HOSTNAME = 'okupatsioon.entu.ee'
-
 HOME_DIR = path.dirname(process.argv[1])
 TEMP_DIR = path.resolve(HOME_DIR, 'temp')
 PIC_READ_ENTITY = 'eksponaat'
@@ -52,15 +25,17 @@ PIC_READ_PROPERTY = 'photo-orig'
 PIC_WRITE_PROPERTY = 'photo'
 VALID_EXTENSIONS = ['.jpg', '.pdf', '.tif', '.tiff', '.png', '.jpeg', '.gif']
 
-var EntuLib = entulib(opts.USER_ID, opts.API_KEY, opts.HOSTNAME)
-
-ENTU_URI = 'https://' + opts.HOSTNAME + '/'
+HOSTNAME = 'okupatsioon.entu.ee'
+ENTU_URI = 'https://' + HOSTNAME + '/'
 ENTU_API = ENTU_URI + 'api2/'
 ENTU_API_ENTITY = ENTU_API + 'entity-'
 ENTU_API_POST_FILE = ENTU_API + 'file/s3'
 
-var fetchNextPage = function fetchNextPage(page) {
+var q = queue(QUEUE_SIZE)
+var EntuLib = entulib(process.env.PM_ENTITY, process.env.PM_KEY, HOSTNAME)
 
+
+var fetchNextPage = function fetchNextPage(page) {
     EntuLib.findEntity(PIC_READ_ENTITY, '', PAGE_SIZE_LIMIT, page, function findEntityCB(err, result) {
         if (err) {
             console.log('findEntityCB: Can\'t reach Entu', err, result)
@@ -159,10 +134,10 @@ var fetchNextPage = function fetchNextPage(page) {
                 }
                 fetchIfReady(page + 1)
             } else {
-                console.log(Date().toString() + '=== New roundtrip in ' + helper.msToTime(1000 * 60 * opts.ROUNDTRIP_MINUTES) + '. Active jobs: ', q.stats().jobs)
-                setTimeout(function() { SLEEPING = false }, 1000 * 60 * opts.ROUNDTRIP_MINUTES)
+                console.log(Date().toString() + '=== New roundtrip in ' + helper.msToTime(1000 * 60 * process.env.PM_NIGHT_MINUTES) + '. Active jobs: ', q.stats().jobs)
+                setTimeout(function() { SLEEPING = false }, 1000 * 60 * process.env.PM_NIGHT_MINUTES)
                 SLEEPING = true
-                setTimeout(function() { fetchNextPage(1) }, 1000 * 60 * opts.ROUNDTRIP_MINUTES)
+                setTimeout(function() { fetchNextPage(1) }, 1000 * 60 * process.env.PM_NIGHT_MINUTES)
             }
 
         }
@@ -245,15 +220,4 @@ pulse()
 
 
 /*
-BUILD, RUN and LOG
-docker kill puhh
-docker rm puhh
-docker build -t mitselek/pildimaag ~/Documents/github/pildimaag/
-docker run -d -v ~/Documents/github/pildimaag/:/pildimaag/ --name puhh mitselek/pildimaag:latest -e <entity_id> -k <API key> -r <minutes>
-docker logs -f puhh
-
-RESTART and LOG
-docker kill puhh
-docker start puhh
-docker logs -f --tail=15 puhh
 */
