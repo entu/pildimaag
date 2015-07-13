@@ -92,7 +92,7 @@ var fetchNextPage = function fetchNextPage(page) {
                         if (photo_property.values) {
                             photo_property.values.forEach(function photoLoop(photo_val) {
                                 if (VALID_EXTENSIONS.indexOf(path.extname(photo_val.value).toLowerCase()) === -1) {
-                                    console.log(Date().toString() + ' IGNORE: file with unsupported extension: ' + path.extname(photo_val.value), photo_val)
+                                    console.log(Date().toString() + ' Ignoring file with unsupported extension (' + path.extname(photo_val.value) + ') on entity ' + entity.id)
                                     return
                                 }
                                 orig_cnt ++
@@ -227,18 +227,20 @@ var fetchFile = function fetchFile(entity_id, file_id, file_name, exp_nr, nimetu
 
 
 var pulse_cnt = 0
-var pulse = function pulse(ms) {
-    var hibernation_factor = 20
+var pulse_ms = 60*1000
+var hibernation_factor = 20
+var pulse = function pulse() {
     if (SLEEPING) {
-        console.log(Date().toString() + ' ...zzzZZ')
+        console.log(Date().toString() + ' ...zzzZZ (' + helper.msToTime(pulse_cnt * pulse_ms) + ')')
         pulse_cnt += hibernation_factor
-        setTimeout(function() { pulse(ms) }, ms * hibernation_factor)
+        setTimeout(function() { pulse() }, pulse_ms * hibernation_factor)
     } else {
-        console.log(Date().toString() + ' tick ' + (pulse_cnt ++))
-        setTimeout(function() { pulse(ms) }, ms)
+        console.log(Date().toString() + ' awake. Lifetime ' + helper.msToTime(pulse_cnt * pulse_ms))
+        pulse_cnt ++
+        setTimeout(function() { pulse() }, pulse_ms)
     }
 }
-pulse(60 * 1000)
+pulse()
 
 
 
