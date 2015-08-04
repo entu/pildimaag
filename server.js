@@ -1,3 +1,5 @@
+if(process.env.NEW_RELIC_LICENSE_KEY) require('newrelic')
+
 var request         = require('request')
 var fs              = require('fs')
 var path            = require('path')
