@@ -1,4 +1,4 @@
-FROM ubuntu:14.04
+FROM node:slim
 
 ADD ./ /pildimaag
 RUN mkdir -p /pildimaag/temp
