@@ -1,4 +1,4 @@
-FROM node:slim
+FROM node:0.12-slim
 
 ADD ./ /pildimaag
 RUN mkdir -p /pildimaag/temp
