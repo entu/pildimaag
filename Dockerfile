@@ -1,4 +1,4 @@
-FROM node:0.12-slim
+FROM node:4.0-slim
 
 ADD ./ /usr/src/pildimaag
 RUN mkdir -p /usr/src/pildimaag/temp
