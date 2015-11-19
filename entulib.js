@@ -5,7 +5,7 @@ var fs          = require('fs')
 var request     = require('request')
 // var Readable    = require('stream').Readable;
 
-var EntuLib = function EntuLib(entu_user_id, entu_user_key, entu_url) {
+var EntuLib = function EntuLibF(entu_user_id, entu_user_key, entu_url) {
 
     var POLICY_EXPIRATION_MINUTES = 15
     var API_VERSION = '/api2/'
@@ -18,15 +18,14 @@ var EntuLib = function EntuLib(entu_user_id, entu_user_key, entu_url) {
     //      Search and fetch entities | { 'definition': entitydefinition, 'query': query, 'limit': limit }
     //       PUT properties to entity | { ('entitydefinition-propertydefinition':value) }
     //
-    var __create_policy = function __create_policy(entu_query) {
-        var conditions = []
-        var entu_query = entu_query === undefined ? {} : entu_query
+    var __create_policy = function __create_policyF(entu_query) {
+        if (entu_query === undefined) { entu_query = {} }
         var conditions = Object.keys(entu_query).map(function(v) { return entu_query[v] })
         var expiration_time = new Date()
         expiration_time.setMinutes(expiration_time.getMinutes() + POLICY_EXPIRATION_MINUTES)
         var policy = { 'expiration': expiration_time.toISOString(), 'conditions': conditions }
         policy = JSON.stringify(policy)
-        encoded_policy = new Buffer(new Buffer(policy).toString('utf8')).toString('base64')
+        var encoded_policy = new Buffer(new Buffer(policy).toString('utf8')).toString('base64')
         var signature = crypto.createHmac('sha1', entu_user_key).update(encoded_policy).digest().toString('base64')
         entu_query.policy = encoded_policy
         entu_query.user = entu_user_id
@@ -34,7 +33,7 @@ var EntuLib = function EntuLib(entu_user_id, entu_user_key, entu_url) {
         return querystring.stringify(entu_query)
     }
 
-    var __submit_it = function __submit_it(path, method, data, callback) {
+    var __submit_it = function __submit_itF(path, method, data, callback) {
         var options = {
             hostname: entu_url,
             path: path,
@@ -57,7 +56,7 @@ var EntuLib = function EntuLib(entu_user_id, entu_user_key, entu_url) {
             response.on('end', function response_emitter() {
                 var str = buffer.toString()
                 try {
-                    var returned_data = JSON.parse(str)
+                    returned_data = JSON.parse(str)
                 }
                 catch (err) {
                     // console.log('EntuLib err: ', err)
@@ -114,7 +113,9 @@ var EntuLib = function EntuLib(entu_user_id, entu_user_key, entu_url) {
             var entu_query = {}
             entu_query.definition = definition
             for (var key in properties) {
-                entu_query[definition + '-' + key] = properties[key]
+                if (properties.hasOwnProperty(key)) {
+                    entu_query[definition + '-' + key] = properties[key]
+                }
             }
             var data = __create_policy(entu_query)
             var path = API_VERSION + 'entity-' + parent_id
@@ -172,7 +173,7 @@ var EntuLib = function EntuLib(entu_user_id, entu_user_key, entu_url) {
                 // formData = data.result.s3.data
                 formData['file'] = fs.createReadStream(filepath)
 
-                request.post({url: data.result.s3.url, formData: formData}, function optionalCallback(err, httpResponse, body) {
+                request.post({url: data.result.s3.url, formData: formData}, function optionalCallback(err, httpResponse) {
                     if (err) {
                         callback(err, 'Upload failed!')
                     }
@@ -180,7 +181,7 @@ var EntuLib = function EntuLib(entu_user_id, entu_user_key, entu_url) {
                 })
             })
         },
-        getFileStream: function (file_id, callback) {
+        getFileStream: function (file_id) {
             var data = __create_policy()
             var path = 'https://' + entu_url + API_VERSION + 'file-' + file_id + '?' + data
             return request(path)

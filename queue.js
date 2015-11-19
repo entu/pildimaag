@@ -1,7 +1,7 @@
 // var util            = require('util')
 // var EventEmitter    = require('events').EventEmitter
 
-var Queue = function Queue(limit) {
+module.exports = function Queue(limit) {
     // EventEmitter.call(this)
     // var self = this
     var increment = 0
@@ -9,7 +9,7 @@ var Queue = function Queue(limit) {
     var active_jobs = {}
     var active = 0
     var status = 'stopped'
-    next = function next() {
+    function next() {
         if (status === 'stopped') {
             console.log('Queue not started...')
             return
@@ -60,7 +60,7 @@ var Queue = function Queue(limit) {
 // util.inherits(Queue, EventEmitter)
 
 
-module.exports = Queue
+
 
 //
 // Sample usage
