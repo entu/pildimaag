@@ -3,8 +3,9 @@
   "version": "1.0.1",
   "private": true,
   "dependencies": {
+    "async": "^1.5.2",
+    "gm": "*",
     "newrelic": "*",
-    "request": "*",
-    "gm": "*"
+    "request": "*"
   }
 }
