@@ -1,7 +1,7 @@
 [
     {
         "name": "Okupatsiooni pildimaag.",
-        "entu": "https://devm.entu.ee",
+        "entuUrl": "https://devm.entu.ee",
         "apiUser": "155005",
         "apiKey": "changeme",
         "sleepMinutes": 0.15,
@@ -52,7 +52,7 @@
     },
     {
         "name": "Saali pildimaag.",
-        "entu": "https://saal.entu.ee",
+        "entuUrl": "https://saal.entu.ee",
         "apiUser": "4008",
         "apiKey": "changeme",
         "sleepMinutes": 0.12,

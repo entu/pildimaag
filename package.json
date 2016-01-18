@@ -4,6 +4,7 @@
   "private": true,
   "dependencies": {
     "async": "^1.5.2",
+    "entulib": "mitselek/entulib",
     "gm": "*",
     "newrelic": "*",
     "promise": "^7.1.1",

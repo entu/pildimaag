@@ -5,12 +5,17 @@ var runTask         = require('./taskrunner')
 
 async.each(require('./jobs.json'), function iterator(job, callback) {
     console.log('Starting job "' + job.name + '"')
+    var entuOptions = {
+        entuUrl: job.entuUrl,
+        user: job.apiUser,
+        key: job.apiKey,
+    }
     async.forever(function(next) {
         async.eachSeries(job.tasks, function iterator(task, callback) {
-            console.log('Starting task "' + task.name + '"')
-            runTask(task)
+            console.log(job.name, 'Starting task: "' + task.name + '"')
+            runTask(task, entuOptions)
             .then(function(result) {
-                console.log(result)
+                console.log(job.name, result)
                 callback()
             })
         },
