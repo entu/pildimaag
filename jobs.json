@@ -25,7 +25,7 @@
                         "fixHeight": 530,
                         "maxHeight": null,
                         "crop": "center",
-                        "keepInSync": true,
+                        "forceKeepInSync": false,
                         "fileNamePrefix": "test_",
                         "fileNameSuffix": "",
                         "metaFields": [
@@ -71,9 +71,9 @@
                         "fixWidth": 200,
                         "fixHeight": 200,
                         "crop": "auto",
-                        "keepInSync": true,
-                        "fileNamePrefix": "test_",
-                        "fileNameSuffix": "thumb"
+                        "forceKeepInSync": false,
+                        "fileNamePrefix": "",
+                        "fileNameSuffix": " 200"
                     },
                     {
                         "property": "photo-medium",
@@ -81,9 +81,9 @@
                         "fixWidth": 350,
                         "fixHeight": 350,
                         "crop": "center",
-                        "keepInSync": true,
-                        "fileNamePrefix": "test_",
-                        "fileNameSuffix": "_350x350"
+                        "forceKeepInSync": false,
+                        "fileNamePrefix": "",
+                        "fileNameSuffix": " 350x350"
                     },
                     {
                         "property": "photo-big",
@@ -91,9 +91,9 @@
                         "fixWidth": 1400,
                         "fixHeight": 700,
                         "crop": "center",
-                        "keepInSync": true,
-                        "fileNamePrefix": "test_",
-                        "fileNameSuffix": "_1400x700"
+                        "forceKeepInSync": false,
+                        "fileNamePrefix": "",
+                        "fileNameSuffix": " 1400x700"
                     }
                 ]
             }

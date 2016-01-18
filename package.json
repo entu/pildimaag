@@ -7,6 +7,7 @@
     "entulib": "mitselek/entulib",
     "gm": "*",
     "newrelic": "*",
+    "object-path": "^0.9.2",
     "promise": "^7.1.1",
     "request": "*"
   }
