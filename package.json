@@ -6,6 +6,7 @@
     "async": "^1.5.2",
     "gm": "*",
     "newrelic": "*",
+    "promise": "^7.1.1",
     "request": "*"
   }
 }

@@ -1,11 +1,14 @@
 [
     {
         "name": "Okupatsiooni pildimaag.",
-        "entu": "https://okupatsioon.entu.ee",
+        "entu": "https://devm.entu.ee",
         "apiUser": "155005",
-        "apiKey": "378c2VuYmaag",
+        "apiKey": "changeme",
+        "sleepMinutes": 0.15,
+        "lagMilliseconds": 500,
         "tasks": [
             {
+                "name": "Pisipildid avalikus vaates publitseerimiseks",
                 "source": {
                     "definitions": [
                         "eksponaat",
@@ -23,7 +26,7 @@
                         "maxHeight": null,
                         "crop": "center",
                         "keepInSync": true,
-                        "fileNamePrefix": "",
+                        "fileNamePrefix": "test_",
                         "fileNameSuffix": "",
                         "metaFields": [
                             {
@@ -49,11 +52,14 @@
     },
     {
         "name": "Saali pildimaag.",
-        "entu": "https://okupatsioon.entu.ee",
+        "entu": "https://saal.entu.ee",
         "apiUser": "4008",
-        "apiKey": "erberviehousexpetion",
+        "apiKey": "changeme",
+        "sleepMinutes": 0.12,
+        "lagMilliseconds": 2000,
         "tasks": [
             {
+                "name": "Kodulehe karusselli ja galerii pildid",
                 "source": {
                     "definitions": ["performance", "event"],
                     "property": "photo-original"
@@ -66,6 +72,7 @@
                         "fixHeight": 200,
                         "crop": "auto",
                         "keepInSync": true,
+                        "fileNamePrefix": "test_",
                         "fileNameSuffix": "thumb"
                     },
                     {
@@ -75,6 +82,7 @@
                         "fixHeight": 350,
                         "crop": "center",
                         "keepInSync": true,
+                        "fileNamePrefix": "test_",
                         "fileNameSuffix": "_350x350"
                     },
                     {
@@ -84,6 +92,7 @@
                         "fixHeight": 700,
                         "crop": "center",
                         "keepInSync": true,
+                        "fileNamePrefix": "test_",
                         "fileNameSuffix": "_1400x700"
                     }
                 ]
