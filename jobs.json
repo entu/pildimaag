@@ -4,8 +4,11 @@
         "entuUrl": "https://devm.entu.ee",
         "apiUser": "155005",
         "apiKey": "changeme",
-        "sleepMinutes": 0.15,
-        "lagMilliseconds": 500,
+        "relaxBetween": {
+            "roundtripMinutes": 1,
+            "tasksSeconds": 10,
+            "pagesSeconds": 1
+        },
         "tasks": [
             {
                 "name": "Pisipildid avalikus vaates publitseerimiseks",
@@ -55,8 +58,11 @@
         "entuUrl": "https://saal.entu.ee",
         "apiUser": "4008",
         "apiKey": "changeme",
-        "sleepMinutes": 0.12,
-        "lagMilliseconds": 2000,
+        "relaxBetween": {
+            "roundtripMinutes": 1,
+            "tasksSeconds": 10,
+            "pagesSeconds": 1
+        },
         "tasks": [
             {
                 "name": "Kodulehe karusselli ja galerii pildid",
