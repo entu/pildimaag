@@ -14,7 +14,6 @@ function runTask(task, entuOptions) {
         // console.log(task)
         console.log('Definitions:', task.source.definitions, 'entuOptions:', entuOptions)
         async.eachSeries(task.source.definitions, function iterator(definition, callback) {
-            var pageSize = 64
             var resultPage = 0
             var resultTotal = 0
             var filteredTotal = 0
@@ -22,7 +21,7 @@ function runTask(task, entuOptions) {
 
             function countResults(result) {
                 resultTotal = result.total
-                resultCount = result.count + resultPage * pageSize
+                resultCount = result.count + resultPage * task.pageSize
                 resultPage = resultPage + 1
                 debug(resultCount + '/' + resultTotal + '(page ' + resultPage + ') results from ' + entuOptions.entuUrl + '/entity/' + definition + ': ' + result.entities.length)
                 // console.log('---1 ', JSON.stringify(result.entities.map(function(opE){return opE.get('id')}), null, 4))
@@ -93,7 +92,7 @@ function runTask(task, entuOptions) {
                             // debug('task for sourceProperty', sourceProperty.file)
                             scanSourceProperty(opEntity, sourceProperty, task, tasksToDo, callback)
                         }, function(err) {
-                            if (err) { return reject(err) }
+                            if (err) { return callback(err) }
                             callback()
                         })
                     }, function(err) {
@@ -103,14 +102,24 @@ function runTask(task, entuOptions) {
                 })
             }
 
+            function processImages(tasksToDo) {
+                resultTotal = result.total
+                resultCount = result.count + resultPage * task.pageSize
+                resultPage = resultPage + 1
+                debug(resultCount + '/' + resultTotal + '(page ' + resultPage + ') results from ' + entuOptions.entuUrl + '/entity/' + definition + ': ' + result.entities.length)
+                // console.log('---1 ', JSON.stringify(result.entities.map(function(opE){return opE.get('id')}), null, 4))
+                return result.entities
+            }
+
+
             async.until(function test(callback) {
                 return resultCount === resultTotal
             }, function iterator(callback) {
-                entu.getEntities(definition, pageSize, resultPage + 1, entuOptions)
+                entu.getEntities(definition, task.pageSize, resultPage + 1, entuOptions)
                     .then( countResults )
                     .then( filterResults )
                     .then( function(tasksToDo) {
-                        if (tasksToDo) {
+                        if (tasksToDo.length) {
                             debug('  ===> ' + tasksToDo.length + ' files to process on ' + entuOptions.entuUrl )
                             console.log('tasksToDo', JSON.stringify(tasksToDo, null, 4))
                         }
