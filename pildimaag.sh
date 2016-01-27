@@ -18,9 +18,8 @@ docker run -d \
     --name="pildimaag" \
     --restart="always" \
     --memory="512m" \
-    --env="PM_ENTITY=" \
-    --env="PM_KEY=" \
-    --env="PM_NIGHT_MINUTES=420" \
+    --env="USER=" \
+    --env="KEY=" \
     pildimaag:latest
 
 docker inspect -f "{{ .NetworkSettings.IPAddress }}" pildimaag
