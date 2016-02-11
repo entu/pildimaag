@@ -9,39 +9,54 @@ var gm              = require('gm')
 
 var CPU_COUNT = 4
 
-var NO_TASKS = 'no tasks'
-function downloadTask(updateTask, callback) {
+var NO_TASKS = 'No changes required.'
+
+// Generate structure like in ./returnTasksExample.json
+function prepareTasks(updateTask, results, callback) {
+    function targetFilename(sourceFilename, template) {
+        var sourceExtName = path.extname(sourceFilename)
+        var sourceFilename = path.basename(sourceFilename, sourceExtName)
+        return template.fileNamePrefix + sourceFilename + template.fileNameSuffix + sourceExtName
+    }
     debug('Performing download update: ' + JSON.stringify(updateTask.item))
-    entu.getEntity(updateTask.item.id, updateTask.entuOptions)
+    entu.getEntity(updateTask.item.id, results.entuOptions)
     .then(function(opEntity) {
-        // var NO_SOURCE = 'no source(s)'
         var returnTasks = op.get(updateTask.job, ['tasks'], []).map(function(a) {
-            // debug(', a.source.property', a.source.property, JSON.stringify(opEntity.get(['properties', a.source.property], 'N/A'), null, 4))
-            var source = opEntity.get(['properties', a.source.property], [])
-            if (!Array.isArray(source)) { source = [source] }
-            // if (source.length === 0) { return NO_SOURCE }
-            var target = a.targets.map(function(b) {
-                return {
-                    template: b,
-                    current: opEntity.get(['properties', b.property], [])
-                }
-            })
-            return {
-                name: a.name,
-                source: source,
-                target: target
+            var returnTask = {
+                jobName: a.name,
+                sources: [],
+                targets: []
             }
+            returnTask.sources = opEntity.get(['properties', a.source.property], [])
+            returnTask.targets = a.targets.map(function(b) {
+                b.toCreate = returnTask.sources.map(function(c) { return targetFilename(c.value, b) })
+                b.toRemove = []
+                b.toKeep = opEntity.get(['properties', b.property], []).filter(function(c) {
+                    if (b.toCreate.indexOf(c.value) > -1) {
+                        b.toCreate.splice(b.toCreate.indexOf(c.value), 1)
+                        return true
+                    } else {
+                        b.toRemove.push(c)
+                        return false
+                    }
+                })
+                return b
+            })
+            return returnTask
         })
-        // debug('returnTasks', JSON.stringify(returnTasks, null, 4))
-        // returnTasks = returnTasks.filter(function(a) { return a !== NO_SOURCE })
-        // if (returnTasks.length === 0) { return callback(NO_TASKS) }
-        callback(null, returnTasks)
+        callback(null, {entityId: updateTask.item.id, tasks: returnTasks})
     })
     .catch(function(reason) {
         debug('reason', reason)
     })
 }
-function prepareTask(results, callback) {
+
+function createMissing(results, callback) {
+    // debug('Preparing tasks: ' + JSON.stringify(results, null, 4))
+    callback(null)
+}
+
+function removeExtra(results, callback) {
     // debug('Preparing tasks: ' + JSON.stringify(results, null, 4))
     callback(null)
 }
@@ -51,27 +66,25 @@ function prepareTask(results, callback) {
 var updateQueue = async.queue( function (updateTask, callback) {
     debug('Adding new update to job "' + updateTask.job.name + '" queue: ' + JSON.stringify(updateTask.item))
     async.auto({
-        preFill: function(callback) {
-            downloadTask(updateTask, callback)
+        entuOptions: function(callback) {
+            callback(null, updateTask.entuOptions)
         },
-        prepare: ['preFill', function(callback, results) {
-            prepareTask(results, callback)
+        prepareTasks: ['entuOptions', function(callback, results) {
+            prepareTasks(updateTask, results, callback)
         }],
-        // upload: ['render', function(callback, results) {
-        //     uploadTask(results, callback)
-        // }]
+        createMissing: ['prepareTasks', function(callback, results) {
+            // debug('results', JSON.stringify(results, null, 4))
+            createMissing(results, callback)
+        }],
+        removeExtra: ['prepareTasks', function(callback, results) {
+            // debug('results', JSON.stringify(results, null, 4))
+            removeExtra(results, callback)
+        }],
     }, function(err, results) {
         if (err) {
             return debug('Adding new update to job "' + updateTask.job.name + '" queue: ' + JSON.stringify(updateTask.item), JSON.stringify(err))
         }
-        var hasCurrentTargets = op.get(results, ['preFill'], []).some(function(a) {
-            return a.target.some(function(b) {
-                return b.current.length > 0
-            })
-        })
-        if (hasCurrentTargets) {
-            debug('Got tasks for job "' + updateTask.job.name + '" queue: ' + JSON.stringify(updateTask.item), JSON.stringify(results, null, 4))
-        }
+        debug('Got tasks for job "' + updateTask.job.name + '" queue: ' + JSON.stringify(updateTask.item), JSON.stringify(results, null, 4))
     })
     callback()
 }, CPU_COUNT)

@@ -1,0 +1,57 @@
+{
+    "entityId": 2920,
+    "tasks": [
+        {
+            "jobName": "Kodulehe karusselli ja galerii pildid",
+            "sources": [
+                {
+                    "id": 78889,
+                    "created": "2016-01-13 21:53:55",
+                    "created_by": "614",
+                    "value": "TAAVI TULEV (Fred Laur).jpg",
+                    "file": "https://saal.entu.ee/api2/file-227"
+                }
+            ],
+            "targets": [
+                {
+                    "property": "photo",
+                    "format": "png",
+                    "fixWidth": 200,
+                    "fixHeight": 200,
+                    "crop": "auto",
+                    "forceKeepInSync": false,
+                    "fileNamePrefix": "",
+                    "fileNameSuffix": " thumb",
+                    "toCreate": [
+                        "TAAVI TULEV (Fred Laur) thumb.jpg"
+                    ],
+                    "toKeep": [
+                        {
+                            "id": 79575,
+                            "created": "2016-01-19 12:42:16",
+                            "created_by": "614",
+                            "value": "TAAVI-TULEV-galerii.jpg",
+                            "file": "https://saal.entu.ee/api2/file-269"
+                        },
+                        {
+                            "id": 79574,
+                            "created": "2016-01-19 12:41:45",
+                            "created_by": "614",
+                            "value": "TAAVI-TULEV-galerii.jpg",
+                            "file": "https://saal.entu.ee/api2/file-268"
+                        }
+                    ],
+                    "toRemove": [
+                        {
+                            "id": 79573,
+                            "created": "2016-01-19 12:41:32",
+                            "created_by": "614",
+                            "value": "TAAVI-TULEV-esileht.jpg",
+                            "file": "https://saal.entu.ee/api2/file-267"
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}
