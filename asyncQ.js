@@ -13,13 +13,6 @@ var CPU_COUNT = 4
 
 var NO_TASKS = 'No changes required.'
 
-function countTasks(tasks, type) {
-    return tasks.reduce(function(sum,a) {
-        return sum + a.targets.reduce(function(sum,b) {
-            return sum + op.get(b, [type], []).length
-        }, 0)
-    }, 0)
-}
 // Generate structure like in ./returnTasksExample.json
 function prepareTasks(updateTask, results, callback) {
     function targetFilename(sourceFilename, template) {
@@ -113,13 +106,20 @@ function prepareTasks(updateTask, results, callback) {
 }
 
 function createMissing(results, callback) {
-    if (countTasks(results.prepareTasks.tasks, 'toCreate') === 0) { return callback(null) }
+    if (op.get(results, ['prepareTasks', 'tasks'], []).reduce(function(sum, a) {
+        return sum + op.get(a, ['toCreate'], []).reduce(function(sum, b) {
+            return sum + op.get(b, ['targets'], []).length
+        }, 0)
+    }, 0) === 0) { return callback(null) }
+
     debug('\n==== Download source')
 
     var outStreams = []
-    var sources = results.prepareTasks.tasks.reduce(function(arr,b){ return arr.concat(b.sources) }, [])
+    var sources = results.prepareTasks.tasks.reduce(function(arr, a) {
+        return arr.concat(a.toCreate)
+    }, [])
     async.each(sources, function iterator(source, callback) {
-        debug('Process source', source)
+        debug('Process source', JSON.stringify(source))
         var sourceStream = entu.requestFile(source.file, results.entuOptions)
             .on('response', function(response) {
                   debug('response', response.statusCode) // 200
@@ -135,12 +135,12 @@ function createMissing(results, callback) {
         //     { name:'[c-str]', pass: new passThrough },
         // ]
 
-        async.each(outStreams, function(oStr, callback) {
-            debug('Piping ' + source.value + ' to ' + oStr.name)
-            sourceStream.pipe(oStr.pass)
-            debug('Piping ' + oStr.name + ' to file')
-            oStr.pass.pipe(fs.createWriteStream('temp/' + oStr.name + source.value ))
-            oStr.pass.on('end', callback)
+        async.each(op.get(source, ['targets'], []), function(target, callback) {
+            debug('Piping ' + source.value + ' to ' + target.property + ':' + target.fileName)
+            var pass = new passThrough
+            sourceStream.pipe(pass)
+            pass.pipe(fs.createWriteStream('temp/' + target.property + '.' + target.fileName ))
+            pass.on('end', callback)
         },
         function(err) {
             if (err) { return callback(err) }
@@ -158,11 +158,10 @@ function createMissing(results, callback) {
 }
 
 function removeExtra(results, callback) {
-    // debug('Preparing tasks: ' + JSON.stringify(results, null, 4))
-    // if (countTasks(results.prepareTasks.tasks, 'toRemove') === 0) {
-    //     return callback(null)
-    // }
-    if (countTasks(results.prepareTasks.tasks, 'toRemove') === 0) { return callback(null) }
+    if (op.get(results, ['prepareTasks', 'tasks'], []).reduce(function(sum, a) {
+        return sum + op.get(a, ['toRemove', 'targets'], []).length
+    }, 0) === 0) { return callback(null) }
+
     return callback(null)
     debug('          ---------------------- FOOOOOÖö 1          ---------------------- ')
     entu.getEntity(results.prepareTasks.entityId, results.entuOptions)
@@ -195,7 +194,7 @@ var updateQueue = async.queue( function (updateTask, callback) {
         }],
         createMissing: ['prepareTasks', function(callback, results) {
             debug('results', JSON.stringify(results, null, 4))
-            // createMissing(results, callback)
+            createMissing(results, callback)
         }],
         // removeExtra: ['prepareTasks', function(callback, results) {
         //     // debug('results', JSON.stringify(results, null, 4))
@@ -205,12 +204,17 @@ var updateQueue = async.queue( function (updateTask, callback) {
         if (err) {
             return debug('Failed to add new task to job "' + updateTask.job.name + '" task item: ' + JSON.stringify(updateTask.item), JSON.stringify(err))
         }
-        var toKeep = countTasks(results.prepareTasks.tasks, 'toKeep')
-        var toCreate = countTasks(results.prepareTasks.tasks, 'toCreate')
-        var toRemove = countTasks(results.prepareTasks.tasks, 'toRemove')
+        var toCreate = op.get(results, ['prepareTasks', 'tasks'], []).reduce(function(sum, a) {
+            return sum + op.get(a, ['toCreate'], []).reduce(function(sum, b) {
+                return sum + op.get(b, ['targets'], []).length
+            }, 0)
+        }, 0)
+        var toRemove = op.get(results, ['prepareTasks', 'tasks'], []).reduce(function(sum, a) {
+            return sum + op.get(a, ['toRemove', 'targets'], []).length
+        }, 0)
         if (toCreate + toRemove) {
             debug('Job "' + updateTask.job.name + '", task item: ' + JSON.stringify(updateTask.item) + ' at ', new Date(updateTask.item.timestamp * 1e3))
-            debug('|__ :', JSON.stringify({toKeep:toKeep, toCreate:toCreate, toRemove:toRemove}))
+            debug('|__ :', JSON.stringify({toCreate:toCreate, toRemove:toRemove}))
         }
         callback()
     })
