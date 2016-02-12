@@ -17,16 +17,31 @@ function readConfiguration() {
             key: process.env.KEY
         }).then(function(opEntity) {
             fulfill(
-                opEntity.get(['properties', 'configuration'])
+                opEntity.get(['properties', 'configuration'], [])
                     .map(function(conf) { return JSON.parse(conf.value) })
             )
-        }).catch(function(err) {
-            reject(err)
+        }).catch(function(reason) {
+            if (reason.code === 'ETIMEDOUT' || reason.code === 'ENOTFOUND') {
+                debug('Trouble with connecting to Entu', JSON.stringify(reason))
+                setTimeout(function () {
+                    return readConfiguration()
+                }, 10e3)
+            } else {
+                debug('Reason', JSON.stringify(reason))
+                setTimeout(function () {
+                    return readConfiguration()
+                }, 10e3)
+            }
         })
+
     })
 }
 
-readConfiguration().then(startJobs)
+readConfiguration()
+.then(startJobs)
+.catch(function(reason) {
+    debug('Crashed with good reason', JSON.stringify(reason))
+})
 
 function startJobs(jobs) {
     // debug('Jobs:', JSON.stringify(jobs, null, 4))

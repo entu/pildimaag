@@ -16,21 +16,21 @@ if (!fs.existsSync(TS_DIR)) { fs.mkdirSync(TS_DIR) }
 
 function runJob(job, entuOptions) {
     function updateTs(ts) {
-        return
-        entuOptions.timestamp = ts
-        fs.writeFileSync(jobFilename, ts)
-        // debug('Update TS: ' + jobFilename, new Date(ts * 1e3))
+        if (entuOptions.timestamp === ts) { return }
+        entuOptions.timestamp = ts + 0.5
+        fs.writeFileSync(jobFilename, ts + 0.5)
+        // debug('Update TS: ' + jobFilename, ts, new Date(ts * 1e3))
     }
 
     var jobFilename = path.join(TS_DIR, job.entuUrl.split('//')[1])
-    if (!fs.existsSync(jobFilename)) { fs.writeFileSync(jobFilename, '0') }
+    if (!fs.existsSync(jobFilename)) { fs.writeFileSync(jobFilename, '1') }
 
     // debug('Task: ', JSON.stringify({task:task, entuOptions:entuOptions}, null, 4))
     return new Promise(function (fulfill, reject) {
         // debug('jobFilename: ' + jobFilename)
         async.forever(function(next) {
             entuOptions.timestamp = Number(fs.readFileSync(jobFilename, 'utf8'))
-            entuOptions.limit = 2
+            entuOptions.limit = job.pageSize
             debug('=== tick forever ' + job.name + ' from ts:' + new Date(entuOptions.timestamp * 1e3) + ' ===')
             entu.pollUpdates(entuOptions)
             .then(function(result) {
@@ -38,30 +38,28 @@ function runJob(job, entuOptions) {
                 var skipDefinition = 0
                 debug(job.name + ' got ' + result.count + ' updates.')
                 result.updates.sort(function(a,b) { return a.timestamp - b.timestamp })
+                // debug('----- sorted ' + JSON.stringify(result.updates))
                 result.updates.forEach(function(item) {
+                    updateTs(item.timestamp)
                     if (item.action !== 'changed at') {
-                        // debug(job.name, 'Skipping ' + JSON.stringify(item), '- is not a "changed" event.')
                         skipChanged ++
-                        updateTs(item.timestamp)
                         return
                     }
-                    op.get(job, ['tasks'], []).forEach(function(task) {
-                        if (op.get(task, ['source', 'definitions'], []).indexOf(item.definition) === -1) {
-                            // debug(job.name, 'Skipping' + JSON.stringify(item), 'does not match with source definition ', task.source.definitions)
-                            skipDefinition ++
-                            updateTs(item.timestamp)
-                        } else {
-                            debug(job.name, 'Processing ' + JSON.stringify(item))
-                            jobQueue.push({job:job, item:item, entuOptions}, function(err) {
-                                if(err) {
-                                    debug(err)
-                                    throw err
-                                }
-                                debug(job.name, 'Processed ' + JSON.stringify(item))
-                                updateTs(item.timestamp)
-                            })
-                        }
-                    })
+                    if ( op.get(job, ['tasks'], [])
+                        .reduce(function(_defs, a) { return _defs.concat(op.get(a, ['source', 'definitions'], [])) }, [])
+                        .some(function(_def) { return _def === item.definition })
+                    ) {
+                        debug('Enqueue ' + job.name + ' ' + JSON.stringify(item) + ' ' + new Date(item.timestamp*1e3), ' at #' + jobQueue.length())
+                        jobQueue.push({job:job, item:item, entuOptions}, function(err) {
+                            if(err) {
+                                debug(err)
+                                throw err
+                            }
+                            debug('Processed ' + job.name + ' ' + JSON.stringify(item) + ' ' + new Date(item.timestamp*1e3), 'Left in queue: ' + jobQueue.length())
+                        })
+                    } else {
+                        skipDefinition ++
+                    }
                 })
                 debug(job.name + ' skipped(c/d): ' + (skipChanged + skipDefinition) + '(' + skipChanged + '/' + skipDefinition + ')')
             })
