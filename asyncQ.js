@@ -137,15 +137,15 @@ function createMissing(results, callback) {
             .on('error', function(err) {
                 console.log('error', JSON.stringify(err))
             })
-        var originalFilepath = './temp/ORIGINAL_' + source.value
+        var originalFilepath = './temp/ORIGINAL_' + source.id
         var originalWriteStream = fs.createWriteStream(originalFilepath)
         entuSourceStream.pipe(originalWriteStream)
         originalWriteStream.on('finish', function() {
-            async.eachSeries(op.get(source, ['targets'], []), function(target, callback) {
+            async.forEachOfSeries(op.get(source, ['targets'], []), function(target, ix, callback) {
                 debug('Piping ' + target.property + ' from ' + originalFilepath + ' to ' + target.fileName)
 
                 var sourceStream = fs.createReadStream(originalFilepath)
-                var finalStream = fs.createWriteStream('temp/' + target.fileName)
+                var finalStream = fs.createWriteStream('temp/' + source.id + '.' + ix + '.jpg')
                 finalStream.on('finish', callback)
 
                 var passToResize = new passThrough()
@@ -159,7 +159,7 @@ function createMissing(results, callback) {
                     .pipe(finalStream)
                 }
                 else {
-                    var appendBgFilename = 'temp/bg_' + target.fileName
+                    var appendBgFilename = 'temp/bg_' + source.id + '.' + ix + '.jpg'
                     finalStream.on('finish', function(){
                         fs.unlink(appendBgFilename)
                     })
