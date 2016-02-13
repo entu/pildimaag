@@ -16,9 +16,13 @@ function readConfiguration() {
             user: process.env.USER,
             key: process.env.KEY
         }).then(function(opEntity) {
+            debug('Got configurations')
             fulfill(
                 opEntity.get(['properties', 'configuration'], [])
-                    .map(function(conf) { return JSON.parse(conf.value) })
+                    .map(function(conf) {
+                        debug (JSON.stringify(JSON.parse(conf.value), null, 2)) 
+                        return JSON.parse(conf.value)
+                    })
             )
         }).catch(function(reason) {
             if (reason.code === 'ETIMEDOUT' || reason.code === 'ENOTFOUND') {
