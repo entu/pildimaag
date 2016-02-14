@@ -26,22 +26,28 @@ function prepareTasks(updateTask, results, callback) {
             var returnTask = {
                 jobName: _task.name,
                 toCreate: [],
+                toKeep: [],
                 toRemove: []
             }
             if (op.get(_task,['source', 'definitions'], []).indexOf(op.get(updateTask, ['item', 'definition'])) === -1) {
                 return returnTask
             }
             // debug('1:', JSON.stringify(updateTask.job))
+
+            // Collect all existing files that are candidates for removal
+            // If _template.forceKeepInSync, then all existing files are candidates
+            //   else only files created by Pildimaag will be evaluated for removal
             _task.targets.forEach(function(_template) { // For every template
                 // debug('1.1:', JSON.stringify(_template))
                 var existingFiles = opEntity.get(['properties', _template.property], [])
                 // debug('1.2:', JSON.stringify(existingFiles))
-                    // NOTE forceKeepInSync indicates, if we want to remove files created by others
-                    existingFiles = existingFiles.filter(function(a) {
-                        if (_template.forceKeepInSync === true) { return true }
-                        return Number(results.entuOptions.user) === Number(a.created_by)
-                    })
-
+                // NOTE forceKeepInSync indicates, if we want to remove files created by others
+                existingFiles = existingFiles.filter(function(a) {
+                    if (_template.forceKeepInSync === true) { return true }
+                    if (Number(results.entuOptions.user) === Number(a.created_by)) { return true }
+                    returnTask.toKeep.push(a)
+                    return false
+                })
                 returnTask.toRemove = returnTask.toRemove.concat(existingFiles)
                 // debug('1.3:', JSON.stringify(opEntity.get(['properties', _template.property], []), null, 2))
             })
@@ -80,12 +86,16 @@ function prepareTasks(updateTask, results, callback) {
                         }
                     }
 
+                    // For every source file on template check, if target is already scheduled (by another task)
                     var currentTargetIx = toCreate.targets.map(function(a) { return JSON.stringify(a) }).indexOf(JSON.stringify(target))
                     if (currentTargetIx === -1) {
                         toCreate.targets.push(target)
                         currentTargetIx = toCreate.targets.length - 1
                     }
 
+                    // Match current target against existing files and decide:
+                    // - if current file needs to be removed (returnTask.toRemove);
+                    // - if new file needs to be created (returnTask.toKeep).
                     returnTask.toRemove = returnTask.toRemove.filter(function(a){
                         if (a.value === target.fileName) {
                             toCreate.targets.splice(currentTargetIx, 1)
@@ -94,13 +104,18 @@ function prepareTasks(updateTask, results, callback) {
                             return true
                         }
                     })
+                    returnTask.toKeep.forEach(function(a) {
+                        if (a.value === target.fileName) {
+                            toCreate.targets.splice(currentTargetIx, 1)
+                        }
+                    })
                 })
                 returnTask.toCreate.push(toCreate)
             })
             // debug('3:', JSON.stringify(returnTask))
             return returnTask
         })
-        callback(null, {entityId: updateTask.item.id, tasks: returnTasks})
+        callback(null, {entityId: updateTask.item.id, definition: updateTask.item.definition, tasks: returnTasks})
     })
     .catch(function(reason) {
         if (reason.code === 'ETIMEDOUT' || reason.code === 'ENOTFOUND') {
@@ -114,7 +129,7 @@ function prepareTasks(updateTask, results, callback) {
                 prepareTasks(updateTask, results, callback)
             }, 10e3)
         } else {
-            debug('reason 3', JSON.stringify(reason))
+            console.log('reason 3', reason)
             setTimeout(function () {
                 prepareTasks(updateTask, results, callback)
             }, 10e3)
@@ -134,7 +149,7 @@ function createMissing(results, callback) {
     var sources = results.prepareTasks.tasks.reduce(function(arr, a) { return arr.concat(a.toCreate) }, [])
     async.each(sources, function iterator(source, callback) {
         debug('Process source', JSON.stringify(source))
-        var entuSourceStream = entu.requestFile(source.file, results.entuOptions)
+        var entuSourceStream = entu.createReadStream(source.file, results.entuOptions)
             .on('response', function(response) {
                 debug('response', response.statusCode, response.headers['content-type']) // 200, 'image/png'
             })
@@ -155,7 +170,11 @@ function createMissing(results, callback) {
                 }
 
                 var finalStream = fs.createWriteStream('temp/' + source.id + '.' + ix + '.jpg')
-                finalStream.on('finish', callback)
+                finalStream.on('finish', function() {
+                    debug('finished streaming of ' + source.id + '.' + JSON.stringify(target), JSON.stringify(results.entuOptions))
+                    entu.createWriteStream(source.id, )
+                    callback()
+                })
 
                 var passToResize = new passThrough()
                 sourceStream.pipe(passToResize)

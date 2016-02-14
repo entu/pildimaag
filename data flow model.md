@@ -97,10 +97,11 @@ Configurations are stored in Entu. Expecting something like this:
 
 
 
-Prepared tasks for single entity look like this. 
+Prepared tasks for single entity look like this.
 
 	{
 	    "entityId": 4030,
+        "definition": "performance",
 	    "tasks": [
 	        {
 	            "jobName": "Kodulehe karusselli ja galerii pildid",
