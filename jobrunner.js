@@ -48,7 +48,7 @@ function runJob(job, entuOptions) {
                         .some(function(_def) { return _def === item.definition })
                     ) {
                         debug('Enqueue ' + job.name + ' ' + JSON.stringify(item) + ' ' + new Date(item.timestamp*1e3), ' at #' + jobQueue.length())
-                        jobQueue.push({job:job, item:item, entuOptions}, function(err) {
+                        jobQueue.unshift({job:job, item:item, entuOptions}, function(err) {
                             if(err) {
                                 debug(err)
                                 throw err
