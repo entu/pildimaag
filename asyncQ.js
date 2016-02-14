@@ -195,7 +195,7 @@ function createMissing(results, callback) {
                     gm(passToResize)
                     .resize(target.fixWidth, target.fixHeight, '^')
                     .gravity('Center')
-                    // .crop(target.fixWidth, target.fixHeight)
+                    .crop(target.fixWidth, target.fixHeight)
                     .stream('jpg')
                     .pipe(passCropped)
                 }
