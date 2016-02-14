@@ -163,17 +163,35 @@ function createMissing(results, callback) {
             async.forEachOfSeries(op.get(source, ['targets'], []), function(target, ix, callback) {
                 debug('Piping ' + target.property + ' from ' + originalFilepath + ' to ' + target.fileName)
 
+                var sourceStream
                 try {
-                    var sourceStream = fs.createReadStream(originalFilepath)
+                    sourceStream = fs.createReadStream(originalFilepath)
                 } catch (err) {
                     throw new Error({ m: 'Problems with ' + originalFilepath, e: err })
                 }
 
-                var finalStream = fs.createWriteStream('temp/' + source.id + '.' + ix + '.jpg')
+                var finalFilePath = 'temp/' + source.id + '.' + ix + '.jpg'
+                var finalStream = fs.createWriteStream(finalFilePath)
+                // var finalStream = entu.createWriteStream(source.id, source.definition + '-' + target.property, resul.entuOptions)
                 finalStream.on('finish', function() {
-                    debug('finished streaming of ' + source.id + '.' + JSON.stringify(target), JSON.stringify(results.entuOptions))
-                    entu.createWriteStream(source.id, )
-                    callback()
+                    debug('finished streaming of ' + JSON.stringify(source) + '.' + JSON.stringify(target), JSON.stringify(results.entuOptions))
+                    var fileOptions = {
+                        'entityId' : results.prepareTasks.entityId,
+                        'property' : results.prepareTasks.definition + '-' + target.property,
+                        'filename' : target.fileName,
+                        'filetype' : 'image/jpeg',
+                        'filesize' : fs.statSync(finalFilePath).size,
+                        'filepath' : finalFilePath
+                    }
+                    entu.uploadFile(fileOptions, results.entuOptions)
+                    .then(function() {
+                        fs.unlink(finalFilePath)
+                        callback()
+                    })
+                    .catch(function(err) {
+                        debug('Something went wrong', err)
+                        throw new Error({ m: 'Something went wrong', e: err })
+                    })
                 })
 
                 var passToResize = new passThrough()

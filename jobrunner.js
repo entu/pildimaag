@@ -5,8 +5,6 @@ var async           = require('async')
 var op              = require('object-path')
 var RSVP            = require('rsvp')
 var entu            = require('entulib')
-var gm              = require('gm')
-// var Promise  = require('promise/lib/rejection-tracking').enable( {allRejections: true} )
 
 var jobQueue        = require('./asyncQ.js')
 
@@ -65,7 +63,7 @@ function runJob(job, entuOptions) {
             })
             .then(function() {
                 debug(job.name + ' Relaxing for ' + job.relaxBetween.roundtripMinutes + ' minutes.')
-                setTimeout(next, job.relaxBetween.roundtripMinutes * 2e3)
+                setTimeout(next, job.relaxBetween.roundtripMinutes * 5e3)
             })
         },
         function(err) {
