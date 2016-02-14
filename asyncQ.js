@@ -3,7 +3,6 @@ var path            = require('path')
 var debug           = require('debug')('app:' + path.basename(__filename).replace('.js', ''))
 var async           = require('async')
 var op              = require('object-path')
-var Promise         = require('promise')
 var entu            = require('entulib')
 var gm              = require('gm')
 var passThrough     = require('stream').PassThrough
@@ -145,7 +144,6 @@ function createMissing(results, callback) {
     }, 0) === 0) { return callback(null) }
     debug('\n==== Download sources')
 
-    var outStreams = []
     var sources = results.prepareTasks.tasks.reduce(function(arr, a) { return arr.concat(a.toCreate) }, [])
     async.each(sources, function iterator(source, callback) {
         debug('Process source', JSON.stringify(source))
@@ -213,8 +211,6 @@ function createMissing(results, callback) {
                     var passToAddSubs = new passThrough()
                     passCropped.pipe(passToAddSubs)
 
-                    // var pixelSource = fs.createReadStream('./pixel.png')
-                    var passBackground = new passThrough()
                     var finalBgStream = fs.createWriteStream(appendBgFilename)
 
                     var width = target.maxWidth ? target.maxWidth : target.fixWidth
@@ -329,13 +325,13 @@ var jobQueue = async.queue( function (updateTask, callback) {
             prepareTasks(updateTask, results, callback)
         }],
         createMissing: ['prepareTasks', function(callback, results) {
-            debug('results', JSON.stringify(results, null, 4))
+            // debug('results', JSON.stringify(results, null, 4))
             createMissing(results, callback)
         }],
-        // removeExtra: ['prepareTasks', function(callback, results) {
-        //     // debug('results', JSON.stringify(results, null, 4))
-        //     removeExtra(results, callback)
-        // }],
+        removeExtra: ['prepareTasks', function(callback, results) {
+            debug('results', JSON.stringify(results, null, 4))
+            removeExtra(results, callback)
+        }],
     }, function(err, results) {
         if (err) {
             return debug('Failed to add new task to job "' + updateTask.job.name + '" task item: ' + JSON.stringify(updateTask.item), JSON.stringify(err))
