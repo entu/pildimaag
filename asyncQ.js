@@ -13,10 +13,8 @@ var CPU_COUNT = 4
 function prepareTasks(updateTask, results, callback) {
     function targetFilename(sourceFilename, template) {
         var sourceExtName = path.extname(sourceFilename)
-        var sourceFilename = sourceFilename.substr(0, sourceFilename.length - sourceExtName.length)
-        var targetFilename = template.fileNamePrefix + sourceFilename + template.fileNameSuffix + sourceExtName
-        // debug('targetFilename', updateTask.item.id, targetFilename)
-        return targetFilename
+        sourceFilename = sourceFilename.substr(0, sourceFilename.length - sourceExtName.length)
+        return template.fileNamePrefix + sourceFilename + template.fileNameSuffix + sourceExtName
     }
     // debug('1:', JSON.stringify(updateTask))
     entu.getEntity(updateTask.item.id, results.entuOptions)
