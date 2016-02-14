@@ -80,13 +80,17 @@ function prepareTasks(updateTask, results, callback) {
                         }
                     }
 
+                    var currentTargetIx = toCreate.targets.map(function(a) { return JSON.stringify(a) }).indexOf(JSON.stringify(target))
+                    if (currentTargetIx === -1) {
+                        toCreate.targets.push(target)
+                        currentTargetIx = toCreate.targets.length - 1
+                    }
+
                     returnTask.toRemove = returnTask.toRemove.filter(function(a){
                         if (a.value === target.fileName) {
+                            toCreate.targets.splice(currentTargetIx, 1)
                             return false
                         } else {
-                            if (toCreate.targets.map(function(a) { return JSON.stringify(a) }).indexOf(JSON.stringify(target)) === -1) {
-                                toCreate.targets.push(target)
-                            }
                             return true
                         }
                     })
@@ -132,7 +136,7 @@ function createMissing(results, callback) {
         debug('Process source', JSON.stringify(source))
         var entuSourceStream = entu.requestFile(source.file, results.entuOptions)
             .on('response', function(response) {
-                  debug('response', response.statusCode, response.headers['content-type']) // 200, 'image/png'
+                debug('response', response.statusCode, response.headers['content-type']) // 200, 'image/png'
             })
             .on('error', function(err) {
                 console.log('error', JSON.stringify(err))
@@ -144,7 +148,12 @@ function createMissing(results, callback) {
             async.forEachOfSeries(op.get(source, ['targets'], []), function(target, ix, callback) {
                 debug('Piping ' + target.property + ' from ' + originalFilepath + ' to ' + target.fileName)
 
-                var sourceStream = fs.createReadStream(originalFilepath)
+                try {
+                    var sourceStream = fs.createReadStream(originalFilepath)
+                } catch (err) {
+                    throw new Error({ m: 'Problems with ' + originalFilepath, e: err })
+                }
+
                 var finalStream = fs.createWriteStream('temp/' + source.id + '.' + ix + '.jpg')
                 finalStream.on('finish', callback)
 
@@ -228,8 +237,6 @@ function createMissing(results, callback) {
                     .stream('jpg')
                     .pipe(passCropped)
                 }
-
-
             },
             function(err) {
                 fs.unlink(originalFilepath)
@@ -275,7 +282,7 @@ function removeExtra(results, callback) {
 
 
 
-var updateQueue = async.queue( function (updateTask, callback) {
+var jobQueue = async.queue( function (updateTask, callback) {
     // debug('Adding new task to job "' + updateTask.job.name + '" queue: ' + JSON.stringify(updateTask.item))
     async.auto({
         entuOptions: function(callback) {
@@ -285,7 +292,7 @@ var updateQueue = async.queue( function (updateTask, callback) {
             prepareTasks(updateTask, results, callback)
         }],
         createMissing: ['prepareTasks', function(callback, results) {
-            // debug('results', JSON.stringify(results, null, 4))
+            debug('results', JSON.stringify(results, null, 4))
             createMissing(results, callback)
         }],
         // removeExtra: ['prepareTasks', function(callback, results) {
@@ -311,8 +318,8 @@ var updateQueue = async.queue( function (updateTask, callback) {
         callback()
     })
 }, CPU_COUNT)
-updateQueue.drain = function() {
-    debug('=== UPDATEQUEUE: ALL ITEMS HAVE BEEN PROCESSED ===')
+jobQueue.drain = function() {
+    debug('=== JOBQUEUE: ALL ITEMS HAVE BEEN PROCESSED ===')
 }
 
 
@@ -328,4 +335,4 @@ uploadQueue.drain = function() {
 
 
 
-module.exports = updateQueue
+module.exports = jobQueue
