@@ -4,13 +4,15 @@ var async           = require('async')
 var path            = require('path')
 var debug           = require('debug')('app:' + path.basename(__filename).replace('.js', ''))
 var runJob          = require('./jobrunner')
-var Promise         = require('promise')
+var RSVP            = require('rsvp')
 var entu            = require('entulib')
+var jsonlint        = require("jsonlint")
+
 
 console.log('\n==================== Launching pildimaag ====================\n---------- ' + new Date() + ' ----------')
 
 function readConfiguration() {
-    return new Promise(function (fulfill, reject) {
+    return new RSVP.Promise(function (fulfill, reject) {
         entu.getEntity(process.env.USER, {
             entuUrl: 'https://entu.entu.ee',
             user: process.env.USER,
@@ -18,22 +20,21 @@ function readConfiguration() {
         }).then(function(opEntity) {
             debug('Got configurations')
             fulfill(
-                opEntity.get(['properties', 'configuration'], [])
-                    .map(function(conf) {
-                        debug (JSON.stringify(JSON.parse(conf.value), null, 2)) 
-                        return JSON.parse(conf.value)
-                    })
+                opEntity.get(['properties', 'configuration'], []).map(function(conf) {
+                    debug('Try to parse conf')
+                    return jsonlint.parse(conf.value)
+                })
             )
         }).catch(function(reason) {
             if (reason.code === 'ETIMEDOUT' || reason.code === 'ENOTFOUND') {
                 debug('Trouble with connecting to Entu', JSON.stringify(reason))
                 setTimeout(function () {
-                    return readConfiguration()
+                    return init()
                 }, 10e3)
             } else {
-                debug('Reason', JSON.stringify(reason))
+                console.log('Reason', reason)
                 setTimeout(function () {
-                    return readConfiguration()
+                    return init()
                 }, 10e3)
             }
         })
@@ -41,11 +42,14 @@ function readConfiguration() {
     })
 }
 
-readConfiguration()
-.then(startJobs)
-.catch(function(reason) {
-    debug('Crashed with good reason', JSON.stringify(reason))
-})
+function init() {
+    readConfiguration()
+    .then(startJobs)
+    .catch(function(reason) {
+        debug('Crashed with good reason', reason, JSON.stringify(reason))
+    })
+}
+init()
 
 function startJobs(jobs) {
     // debug('Jobs:', JSON.stringify(jobs, null, 4))

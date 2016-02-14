@@ -7,9 +7,10 @@
     "debug": "^2.2.0",
     "entulib": "mitselek/entulib",
     "gm": "^1.21.1",
+    "jsonlint": "^1.6.2",
     "newrelic": "*",
     "object-path": "^0.9.2",
-    "promise": "^7.1.1",
-    "request": "*"
+    "request": "*",
+    "rsvp": "^3.2.1"
   }
 }

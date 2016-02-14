@@ -3,7 +3,7 @@ var path            = require('path')
 var debug           = require('debug')('app:' + path.basename(__filename).replace('.js', ''))
 var async           = require('async')
 var op              = require('object-path')
-var Promise         = require('promise')
+var RSVP            = require('rsvp')
 var entu            = require('entulib')
 var gm              = require('gm')
 // var Promise  = require('promise/lib/rejection-tracking').enable( {allRejections: true} )
@@ -26,7 +26,7 @@ function runJob(job, entuOptions) {
     if (!fs.existsSync(jobFilename)) { fs.writeFileSync(jobFilename, '1') }
 
     // debug('Task: ', JSON.stringify({task:task, entuOptions:entuOptions}, null, 4))
-    return new Promise(function (fulfill, reject) {
+    return new RSVP.Promise(function (fulfill, reject) {
         // debug('jobFilename: ' + jobFilename)
         async.forever(function(next) {
             entuOptions.timestamp = Number(fs.readFileSync(jobFilename, 'utf8'))
