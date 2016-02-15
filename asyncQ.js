@@ -7,6 +7,8 @@ var entu            = require('entulib')
 var gm              = require('gm')
 var passThrough     = require('stream').PassThrough
 
+var exify           = require('./exify.js')
+
 var CPU_COUNT = 4
 
 // Generate structure like in ./data flow model.md
@@ -14,7 +16,7 @@ function prepareTasks(updateTask, results, callback) {
     function targetFilename(sourceFilename, template) {
         var sourceExtName = path.extname(sourceFilename)
         sourceFilename = sourceFilename.substr(0, sourceFilename.length - sourceExtName.length)
-        return template.fileNamePrefix + sourceFilename + template.fileNameSuffix + sourceExtName
+        return template.fileNamePrefix + sourceFilename + template.fileNameSuffix + '.' + template.format
     }
     // debug('1:', JSON.stringify(updateTask))
     entu.getEntity(updateTask.item.id, results.entuOptions)
@@ -72,15 +74,24 @@ function prepareTasks(updateTask, results, callback) {
                         exif: _template.exif,
                     }
                     if (target.subs) {
-                        if (target.subs.formula) {
-                            target.subs.text = target.subs.formula
-                            // debug (target.subs.text, target.metaFields)
-                            target.metaFields.forEach(function(field) {
-                                var search = '@mapping.' + field.mapping + '@'
-                                var replace = opEntity.get(['properties', field.definition, 0, 'value'], 'N/A')
-                                target.subs.text = target.subs.text.split(search).join(replace)
+                        target.subs.text = target.subs.text ? target.subs.text.split('@mapping._id@').join(opEntity.get(['id'])) : ''
+                        Object.keys(target.metaFields).forEach(function(label) {
+                            var mappedTo = target.metaFields[label]
+                            var search = '@mapping.' + label + '@'
+                            var replace = opEntity.get(['properties', mappedTo, 0, 'value'], 'N/A')
+                            target.subs.text = target.subs.text.split(search).join(replace)
+                        })
+                    }
+                    if (target.exif) {
+                        Object.keys(target.exif).forEach(function(exifProperty) {
+                            target.exif[exifProperty] = target.exif[exifProperty].split('@mapping._id@').join(opEntity.get(['id']))
+                            Object.keys(target.metaFields).forEach(function(label) {
+                                var mappedTo = target.metaFields[label]
+                                var search = '@mapping.' + label + '@'
+                                var replace = opEntity.get(['properties', mappedTo, 0, 'value'], mappedTo)
+                                target.exif[exifProperty] = target.exif[exifProperty].split(search).join(replace)
                             })
-                        }
+                        })
                     }
 
                     // For every source file on template check, if target is already scheduled (by another task)
@@ -157,7 +168,8 @@ function createMissing(results, callback) {
         entuSourceStream.pipe(originalWriteStream)
         originalWriteStream.on('finish', function() {
             async.forEachOfSeries(op.get(source, ['targets'], []), function(target, ix, callback) {
-                debug('Piping ' + target.property + ' from ' + originalFilepath + ' to ' + target.fileName)
+                debug('Piping ', JSON.stringify(target, null, 4))
+                // debug('Piping ' + target.property + ' from ' + originalFilepath + ' to ' + target.fileName)
 
                 var sourceStream
                 try {
@@ -166,27 +178,33 @@ function createMissing(results, callback) {
                     throw new Error({ m: 'Problems with ' + originalFilepath, e: err })
                 }
 
-                var finalFilePath = 'temp/' + source.id + '.' + ix + '.jpg'
+                var finalFilePath = 'temp/' + source.id + '.' + ix + '.' + target.format
                 var finalStream = fs.createWriteStream(finalFilePath)
-                // var finalStream = entu.createWriteStream(source.id, source.definition + '-' + target.property, resul.entuOptions)
                 finalStream.on('finish', function() {
-                    debug('finished streaming of ' + JSON.stringify(source) + '.' + JSON.stringify(target), JSON.stringify(results.entuOptions))
-                    var fileOptions = {
-                        'entityId' : results.prepareTasks.entityId,
-                        'property' : results.prepareTasks.definition + '-' + target.property,
-                        'filename' : target.fileName,
-                        'filetype' : 'image/jpeg',
-                        'filesize' : fs.statSync(finalFilePath).size,
-                        'filepath' : finalFilePath
-                    }
-                    entu.uploadFile(fileOptions, results.entuOptions)
-                    .then(function() {
-                        fs.unlink(finalFilePath)
-                        callback()
-                    })
-                    .catch(function(err) {
-                        debug('Something went wrong', err)
-                        throw new Error({ m: 'Something went wrong', e: err })
+                    debug('Apply EXIF')
+                    exify(finalFilePath, target.exif, function(err, response) {
+                        if (err) {
+                            debug( 'EXIF not set:\n' + err)
+                        }
+                        debug('finished processing of ' + JSON.stringify(source) + '.' + JSON.stringify(target), JSON.stringify(results.entuOptions))
+                        var fileOptions = {
+                            'entityId' : results.prepareTasks.entityId,
+                            'property' : results.prepareTasks.definition + '-' + target.property,
+                            'filename' : target.fileName,
+                            'filetype' : 'image/jpeg',
+                            'filesize' : fs.statSync(finalFilePath).size,
+                            'filepath' : finalFilePath
+                        }
+                        entu.uploadFile(fileOptions, results.entuOptions)
+                        .then(function() {
+                            debug('fs.unlink(finalFilePath)' + finalFilePath)
+                            fs.unlink(finalFilePath)
+                            callback()
+                        })
+                        .catch(function(err) {
+                            debug('Something went wrong with upload', err)
+                            throw new Error({ m: 'Something went wrong', e: err })
+                        })
                     })
                 })
 
@@ -197,12 +215,14 @@ function createMissing(results, callback) {
                 if (!target.subs) {
                     debug('no subs')
                     gm(passCropped)
-                    .stream('jpg')
+                    .quality(100)
+                    .stream(target.format)
                     .pipe(finalStream)
                 }
                 else {
-                    var appendBgFilename = 'temp/bg_' + source.id + '.' + ix + '.jpg'
+                    var appendBgFilename = 'temp/bg_' + source.id + '.' + ix + '.png'
                     finalStream.on('finish', function(){
+                        debug('fs.unlink(appendBgFilename)' + appendBgFilename)
                         fs.unlink(appendBgFilename)
                     })
                     debug('subbing with ' + target.subs.text)
@@ -219,13 +239,13 @@ function createMissing(results, callback) {
                     // .fill('#' + ('000000' + parseInt(Math.random()*256*256*256, 10).toString(16)).slice(-6))
                     .drawText(0, 0, target.subs.text, 'center')
                     .quality(100)
-                    .stream('jpg')
+                    .stream('png')
                     .pipe(finalBgStream)
 
                     finalBgStream.on('finish', function() {
                         gm(passToAddSubs)
                         .append(appendBgFilename)
-                        .stream('jpg')
+                        .stream(target.format)
                         .pipe(finalStream)
                     })
                 }
@@ -236,7 +256,7 @@ function createMissing(results, callback) {
                     .resize(target.fixWidth, target.fixHeight, '^')
                     .gravity('Center')
                     .crop(target.fixWidth, target.fixHeight)
-                    .stream('jpg')
+                    .stream(target.format)
                     .pipe(passCropped)
                 }
                 else if (target.maxWidth && target.fixHeight) {
@@ -246,7 +266,7 @@ function createMissing(results, callback) {
                     .gravity('Center')
                     .crop(target.maxWidth, target.fixHeight)
                     .extent(target.maxWidth, target.fixHeight)
-                    .stream('jpg')
+                    .stream(target.format)
                     .pipe(passCropped)
                 }
                 else if (target.fixWidth && target.maxHeight) {
@@ -256,7 +276,7 @@ function createMissing(results, callback) {
                     .gravity('Center')
                     .crop(target.fixWidth, target.maxHeight)
                     .extent(target.fixWidth, target.maxHeight)
-                    .stream('jpg')
+                    .stream(target.format)
                     .pipe(passCropped)
                 }
                 else if (target.maxWidth && target.maxHeight) {
@@ -265,7 +285,7 @@ function createMissing(results, callback) {
                     .resize(target.maxWidth, target.maxHeight)
                     .extent(target.maxWidth, target.maxHeight)
                     .gravity('Center')
-                    .stream('jpg')
+                    .stream(target.format)
                     .pipe(passCropped)
                 }
             },
@@ -327,7 +347,7 @@ var jobQueue = async.queue( function (updateTask, callback) {
             createMissing(results, callback)
         }],
         removeExtra: ['prepareTasks', function(callback, results) {
-            debug('results', JSON.stringify(results, null, 4))
+            // debug('results', JSON.stringify(results, null, 4))
             removeExtra(results, callback)
         }],
     }, function(err, results) {
