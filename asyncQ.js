@@ -123,7 +123,7 @@ function prepareTasks(updateTask, results, callback) {
             // debug('3:', JSON.stringify(returnTask))
             return returnTask
         })
-        callback(null, {entityId: updateTask.item.id, definition: updateTask.item.definition, tasks: returnTasks})
+        return callback(null, { entityId: updateTask.item.id, definition: updateTask.item.definition, tasks: returnTasks })
     })
     .catch(function(reason) {
         if (reason.code === 'ETIMEDOUT' || reason.code === 'ENOTFOUND') {
@@ -146,164 +146,185 @@ function prepareTasks(updateTask, results, callback) {
 }
 
 function createMissing(results, callback) {
+    // debug(JSON.stringify(results, null, 4))
+
     if (op.get(results, ['prepareTasks', 'tasks'], []).reduce(function(sum, a) {
         return sum + op.get(a, ['toCreate'], []).reduce(function(sum, b) {
             return sum + op.get(b, ['targets'], []).length
         }, 0)
     }, 0) === 0) { return callback(null) }
-    debug('\n==== Download sources')
 
     var sources = results.prepareTasks.tasks.reduce(function(arr, a) { return arr.concat(a.toCreate) }, [])
+    // debug('Process sources', JSON.stringify(sources, null, 4))
     async.each(sources, function iterator(source, callback) {
-        debug('Process source', JSON.stringify(source))
+        // debug('Process source', JSON.stringify(source, null, 4))
         var entuSourceStream = entu.createReadStream(source.file, results.entuOptions)
+            .on('error', function(err) {
+                debug('Problem with source at ' + source.file, err)
+                return callback( new ReferenceError('Problem with source at ' + source.file + '\n' + err) )
+            })
             .on('response', function(response) {
                 debug('response', response.statusCode, response.headers['content-type']) // 200, 'image/png'
-            })
-            .on('error', function(err) {
-                console.log('error', JSON.stringify(err))
-            })
-        var originalFilepath = './temp/ORIGINAL_' + source.id
-        var originalWriteStream = fs.createWriteStream(originalFilepath)
-        entuSourceStream.pipe(originalWriteStream)
-        originalWriteStream.on('finish', function() {
-            async.forEachOfSeries(op.get(source, ['targets'], []), function(target, ix, callback) {
-                debug('Piping ', JSON.stringify(target, null, 4))
-                // debug('Piping ' + target.property + ' from ' + originalFilepath + ' to ' + target.fileName)
-
-                var sourceStream
-                try {
-                    sourceStream = fs.createReadStream(originalFilepath)
-                } catch (err) {
-                    throw new Error({ m: 'Problems with ' + originalFilepath, e: err })
+                if (response.statusCode !== 200) {
+                    debug('asd: Source not available at ' + source.file)
+                    return callback( new ReferenceError('Source not available at ' + source.file) )
                 }
+                // return callback(null)
+                var originalFilepath = './temp/ORIGINAL_' + source.id
+                debug('fs.createWriteStream(originalFilepath): ' + originalFilepath)
+                var originalWriteStream = fs.createWriteStream(originalFilepath)
+                entuSourceStream.pipe(originalWriteStream)
+                originalWriteStream.on('finish', function() {
+                    async.forEachOfSeries(op.get(source, ['targets'], []), function(target, ix, callback) {
+                        // debug('Piping ', JSON.stringify(target, null, 4))
+                        debug('Piping ' + target.property + ' from ' + originalFilepath + ' to ' + target.fileName)
 
-                var finalFilePath = 'temp/' + source.id + '.' + ix + '.' + target.format
-                var finalStream = fs.createWriteStream(finalFilePath)
-                finalStream.on('finish', function() {
-                    debug('Apply EXIF')
-                    exify(finalFilePath, target.exif, function(err, response) {
+                        var sourceStream
+                        try {
+                            sourceStream = fs.createReadStream(originalFilepath)
+                        } catch (err) {
+                            debug('Failed to create readStream from ' + err)
+                            return callback( new ReferenceError('Failed to create readStream from ' + originalFilepath + '\n' + err) )
+                        }
+
+                        var finalFilePath = 'temp/' + source.id + '.' + ix + '.' + target.format
+                        debug('fs.createWriteStream(finalFilePath): ' + finalFilePath)
+                        var finalStream = fs.createWriteStream(finalFilePath)
+                        finalStream.on('finish', function() {
+                            // debug('Apply EXIF')
+                            exify(finalFilePath, target.exif, function(err, response) {
+                                if (err) {
+                                    // debug( 'WARNING: EXIF has to say this:\n', err)
+                                }
+                                // debug('finished processing of ' + JSON.stringify(source) + '.' + JSON.stringify(target), JSON.stringify(results.entuOptions))
+                                try {
+                                    var fileStats = fs.statSync(finalFilePath)
+                                    var fileOptions = {
+                                        'entityId' : results.prepareTasks.entityId,
+                                        'property' : results.prepareTasks.definition + '-' + target.property,
+                                        'filename' : target.fileName,
+                                        'filetype' : 'image/jpeg',
+                                        'filesize' : fileStats.size,
+                                        'filepath' : finalFilePath
+                                    }
+                                    entu.uploadFile(fileOptions, results.entuOptions)
+                                    .then(function() {
+                                        debug('fs.unlink(finalFilePath)' + finalFilePath)
+                                        fs.unlink(finalFilePath)
+                                        return callback(null)
+                                    })
+                                    .catch(function(err) {
+                                        debug('Something went wrong with upload', err)
+                                        return callback( new Error('Something went wrong with upload' + '\n' + err) )
+                                    })
+                                } catch(err) {
+                                    debug('Something went wrong with upload', err)
+                                    return callback( new Error('Something went wrong with upload' + '\n' + err) )
+                                }
+                            })
+                        })
+
+                        var passToResize = new passThrough()
+                        sourceStream.pipe(passToResize)
+                        var passCropped = new passThrough()
+
+                        if (!target.subs) {
+                            // debug('no subs')
+                            gm(passCropped)
+                            .quality(100)
+                            .stream(target.format)
+                            .pipe(finalStream)
+                        }
+                        else {
+                            var appendBgFilename = 'temp/bg_' + source.id + '.' + ix + '.png'
+                            finalStream.on('finish', function(){
+                                debug('fs.unlink(appendBgFilename)' + appendBgFilename)
+                                fs.unlink(appendBgFilename)
+                            })
+                            debug('subbing with ' + target.subs.text)
+                            var passToAddSubs = new passThrough()
+                            passCropped.pipe(passToAddSubs)
+
+                            debug('fs.createWriteStream(appendBgFilename): ' + appendBgFilename)
+                            var finalBgStream = fs.createWriteStream(appendBgFilename)
+
+                            var width = target.maxWidth ? target.maxWidth : target.fixWidth
+                            target.subs.text = target.subs.text || 'abrakadabra mims leidfg asdgiooh asgoasdgl adfgladskg ais gaodshgoa sdiohia sdgas.'
+                            gm(width, target.subs.height, '#' + target.subs.backgroundColor)
+                            .fontSize(12)
+                            .fill("#000000")
+                            // .fill('#' + ('000000' + parseInt(Math.random()*256*256*256, 10).toString(16)).slice(-6))
+                            .drawText(0, 0, target.subs.text, 'center')
+                            .quality(100)
+                            .stream('png')
+                            .pipe(finalBgStream)
+
+                            finalBgStream.on('finish', function() {
+                                gm(passToAddSubs)
+                                .append(appendBgFilename)
+                                .stream(target.format)
+                                .pipe(finalStream)
+                            })
+                        }
+                        // debug('Resizing ', JSON.stringify(target))
+                        if (target.fixWidth && target.fixHeight) {
+                            // debug('Resizing fix-fix')
+                            gm(passToResize)
+                            .resize(target.fixWidth, target.fixHeight, '^')
+                            .gravity('Center')
+                            .crop(target.fixWidth, target.fixHeight)
+                            .stream(target.format)
+                            .pipe(passCropped)
+                        }
+                        else if (target.maxWidth && target.fixHeight) {
+                            // debug('Resizing max-fix')
+                            gm(passToResize)
+                            .resize(null, target.fixHeight)
+                            .gravity('Center')
+                            .crop(target.maxWidth, target.fixHeight)
+                            .extent(target.maxWidth, target.fixHeight)
+                            .stream(target.format)
+                            .pipe(passCropped)
+                        }
+                        else if (target.fixWidth && target.maxHeight) {
+                            // debug('Resizing fix-max')
+                            gm(passToResize)
+                            .resize(target.fixWidth, null)
+                            .gravity('Center')
+                            .crop(target.fixWidth, target.maxHeight)
+                            .extent(target.fixWidth, target.maxHeight)
+                            .stream(target.format)
+                            .pipe(passCropped)
+                        }
+                        else if (target.maxWidth && target.maxHeight) {
+                            // debug('Resizing max-max')
+                            gm(passToResize)
+                            .resize(target.maxWidth, target.maxHeight)
+                            .extent(target.maxWidth, target.maxHeight)
+                            .gravity('Center')
+                            .stream(target.format)
+                            .pipe(passCropped)
+                        }
+                    },
+                    function(err) {
                         if (err) {
-                            debug( 'EXIF not set:\n' + err)
+                            console.log(err)
+                            return callback(err)
                         }
-                        debug('finished processing of ' + JSON.stringify(source) + '.' + JSON.stringify(target), JSON.stringify(results.entuOptions))
-                        var fileOptions = {
-                            'entityId' : results.prepareTasks.entityId,
-                            'property' : results.prepareTasks.definition + '-' + target.property,
-                            'filename' : target.fileName,
-                            'filetype' : 'image/jpeg',
-                            'filesize' : fs.statSync(finalFilePath).size,
-                            'filepath' : finalFilePath
-                        }
-                        entu.uploadFile(fileOptions, results.entuOptions)
-                        .then(function() {
-                            debug('fs.unlink(finalFilePath)' + finalFilePath)
-                            fs.unlink(finalFilePath)
-                            callback()
-                        })
-                        .catch(function(err) {
-                            debug('Something went wrong with upload', err)
-                            throw new Error({ m: 'Something went wrong', e: err })
-                        })
+                        debug('fs.unlink(originalFilepath)' + originalFilepath)
+                        fs.unlink(originalFilepath)
+                        return callback(null)
                     })
                 })
-
-                var passToResize = new passThrough()
-                sourceStream.pipe(passToResize)
-                var passCropped = new passThrough()
-
-                if (!target.subs) {
-                    debug('no subs')
-                    gm(passCropped)
-                    .quality(100)
-                    .stream(target.format)
-                    .pipe(finalStream)
-                }
-                else {
-                    var appendBgFilename = 'temp/bg_' + source.id + '.' + ix + '.png'
-                    finalStream.on('finish', function(){
-                        debug('fs.unlink(appendBgFilename)' + appendBgFilename)
-                        fs.unlink(appendBgFilename)
-                    })
-                    debug('subbing with ' + target.subs.text)
-                    var passToAddSubs = new passThrough()
-                    passCropped.pipe(passToAddSubs)
-
-                    var finalBgStream = fs.createWriteStream(appendBgFilename)
-
-                    var width = target.maxWidth ? target.maxWidth : target.fixWidth
-                    target.subs.text = target.subs.text || 'abrakadabra mims leidfg asdgiooh asgoasdgl adfgladskg ais gaodshgoa sdiohia sdgas.'
-                    gm(width, target.subs.height, '#' + target.subs.backgroundColor)
-                    .fontSize(12)
-                    .fill("#000000")
-                    // .fill('#' + ('000000' + parseInt(Math.random()*256*256*256, 10).toString(16)).slice(-6))
-                    .drawText(0, 0, target.subs.text, 'center')
-                    .quality(100)
-                    .stream('png')
-                    .pipe(finalBgStream)
-
-                    finalBgStream.on('finish', function() {
-                        gm(passToAddSubs)
-                        .append(appendBgFilename)
-                        .stream(target.format)
-                        .pipe(finalStream)
-                    })
-                }
-                debug('Resizing ', JSON.stringify(target))
-                if (target.fixWidth && target.fixHeight) {
-                    debug('Resizing fix-fix')
-                    gm(passToResize)
-                    .resize(target.fixWidth, target.fixHeight, '^')
-                    .gravity('Center')
-                    .crop(target.fixWidth, target.fixHeight)
-                    .stream(target.format)
-                    .pipe(passCropped)
-                }
-                else if (target.maxWidth && target.fixHeight) {
-                    debug('Resizing max-fix')
-                    gm(passToResize)
-                    .resize(null, target.fixHeight)
-                    .gravity('Center')
-                    .crop(target.maxWidth, target.fixHeight)
-                    .extent(target.maxWidth, target.fixHeight)
-                    .stream(target.format)
-                    .pipe(passCropped)
-                }
-                else if (target.fixWidth && target.maxHeight) {
-                    debug('Resizing fix-max')
-                    gm(passToResize)
-                    .resize(target.fixWidth, null)
-                    .gravity('Center')
-                    .crop(target.fixWidth, target.maxHeight)
-                    .extent(target.fixWidth, target.maxHeight)
-                    .stream(target.format)
-                    .pipe(passCropped)
-                }
-                else if (target.maxWidth && target.maxHeight) {
-                    debug('Resizing max-max')
-                    gm(passToResize)
-                    .resize(target.maxWidth, target.maxHeight)
-                    .extent(target.maxWidth, target.maxHeight)
-                    .gravity('Center')
-                    .stream(target.format)
-                    .pipe(passCropped)
-                }
-            },
-            function(err) {
-                fs.unlink(originalFilepath)
-                if (err) { return callback(err) }
-                callback()
             })
-
-        })
     },
     function(err) {
         if (err) {
-            debug('Pildimaag stopped with error.', err)
-            throw err
+            debug('123: Failed to process source.', err)
+            return callback('Failed to process source.' + '\n' + err)
         }
-        debug('file fetch success')
-        callback(null)
+        debug('Sources successfully processed.')
+        return callback(null)
     })
 }
 
@@ -313,31 +334,31 @@ function removeExtra(results, callback) {
     }, 0) === 0) { return callback(null) }
 
     return callback(null)
-    debug('          ---------------------- FOOOOOÖö 1          ---------------------- ')
-    entu.getEntity(results.prepareTasks.entityId, results.entuOptions)
-    .then(function(request) {
-        debug('          ---------------------- FOOOOOÖö 2          ---------------------- ')
-        request.on('response', function(response) {
-              debug('response', response.statusCode) // 200
-              debug('response', response.headers['content-type']) // 'image/png'
-        })
-        .on('error', function(err) {
-            console.log('error', JSON.stringify(err))
-        })
-        .pipe(fs.createWriteStream('./doodle.jpg'))
-    })
-    .catch(function(reason) {
-        debug('reason', JSON.stringify(reason))
-    })
+    // debug('          ---------------------- FOOOOOÖö 1          ---------------------- ')
+    // entu.getEntity(results.prepareTasks.entityId, results.entuOptions)
+    // .then(function(request) {
+    //     debug('          ---------------------- FOOOOOÖö 2          ---------------------- ')
+    //     request.on('response', function(response) {
+    //           debug('response', response.statusCode) // 200
+    //           debug('response', response.headers['content-type']) // 'image/png'
+    //     })
+    //     .on('error', function(err) {
+    //         console.log('error', JSON.stringify(err))
+    //     })
+    //     .pipe(fs.createWriteStream('./doodle.jpg'))
+    // })
+    // .catch(function(reason) {
+    //     debug('reason', JSON.stringify(reason))
+    // })
 }
 
 
 
 var jobQueue = async.queue( function (updateTask, callback) {
-    // debug('Adding new task to job "' + updateTask.job.name + '" queue: ' + JSON.stringify(updateTask.item))
+    debug('   <X = #' + updateTask.job.jobIncrement + '> Executing task for job "' + updateTask.job.name + '" queue: ' + JSON.stringify(updateTask.item))
     async.auto({
         entuOptions: function(callback) {
-            callback(null, updateTask.entuOptions)
+            return callback(null, updateTask.entuOptions)
         },
         prepareTasks: ['entuOptions', function(callback, results) {
             prepareTasks(updateTask, results, callback)
@@ -352,7 +373,8 @@ var jobQueue = async.queue( function (updateTask, callback) {
         }],
     }, function(err, results) {
         if (err) {
-            return debug('Failed to add new task to job "' + updateTask.job.name + '" task item: ' + JSON.stringify(updateTask.item), JSON.stringify(err))
+            debug('   <X ! #' + updateTask.job.jobIncrement + '> Task failed for job "' + updateTask.job.name + '" task item: ' + JSON.stringify(updateTask.item), err)
+            return callback('Task failed for job "' + updateTask.job.name +  + '\n' + err)
         }
         var toCreate = op.get(results, ['prepareTasks', 'tasks'], []).reduce(function(sum, a) {
             return sum + op.get(a, ['toCreate'], []).reduce(function(sum, b) {
@@ -363,12 +385,13 @@ var jobQueue = async.queue( function (updateTask, callback) {
             return sum + op.get(a, ['toRemove', 'targets'], []).length
         }, 0)
         if (toCreate + toRemove) {
-            debug('Job "' + updateTask.job.name + '", task item: ' + JSON.stringify(updateTask.item) + ' at ', new Date(updateTask.item.timestamp * 1e3))
-            debug('|__ :', JSON.stringify({toCreate:toCreate, toRemove:toRemove}))
+            debug('#' + updateTask.job.jobIncrement + ' Job "' + updateTask.job.name + '", task item: ' + JSON.stringify(updateTask.item) + ' at ', new Date(updateTask.item.timestamp * 1e3))
+            debug('#' + updateTask.job.jobIncrement + ' |__ :', JSON.stringify({toCreate:toCreate, toRemove:toRemove}))
         }
-        callback()
+        debug('   <X . #' + updateTask.job.jobIncrement + '> Task finished for job "' + updateTask.job.name + '" queue: ' + JSON.stringify(updateTask.item))
+        return callback(null)
     })
-}, CPU_COUNT)
+}, 1)
 jobQueue.drain = function() {
     debug('=== JOBQUEUE: ALL ITEMS HAVE BEEN PROCESSED ===')
 }
@@ -378,7 +401,7 @@ jobQueue.drain = function() {
 
 
 var uploadQueue = async.queue( function (task, callback) {
-    callback()
+    return callback(null)
 })
 uploadQueue.drain = function() {
     debug('uploadQueue: all items have been processed')

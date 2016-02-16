@@ -11,6 +11,7 @@ var jobQueue        = require('./asyncQ.js')
 TS_DIR = __dirname + '/timestamps'
 if (!fs.existsSync(TS_DIR)) { fs.mkdirSync(TS_DIR) }
 
+var jobIncrement = 0
 
 function runJob(job, entuOptions) {
     function updateTs(ts) {
@@ -34,40 +35,51 @@ function runJob(job, entuOptions) {
             .then(function(result) {
                 var skipChanged = 0
                 var skipDefinition = 0
-                debug(job.name + ' got ' + result.count + ' updates.')
+                // debug(job.name + ' got ' + result.count + ' updates.')
                 result.updates.sort(function(a,b) { return a.timestamp - b.timestamp })
                 // debug('----- sorted ' + JSON.stringify(result.updates))
                 result.updates.forEach(function(item) {
-                    updateTs(item.timestamp)
                     if (item.action !== 'changed at') {
+                        updateTs(item.timestamp)
                         skipChanged ++
                         return
                     }
-                    if ( op.get(job, ['tasks'], [])
+                    // If task exists for given definition
+                    else if ( op.get(job, ['tasks'], [])
                         .reduce(function(_defs, a) { return _defs.concat(op.get(a, ['source', 'definitions'], [])) }, [])
                         .some(function(_def) { return _def === item.definition })
                     ) {
-                        debug('Enqueue ' + job.name + ' ' + JSON.stringify(item) + ' ' + new Date(item.timestamp*1e3), ' at #' + jobQueue.length())
-                        jobQueue.push({job:job, item:item, entuOptions}, function(err) {
-                            if(err) {
-                                debug(err)
-                                throw err
+                        job.jobIncrement = ++jobIncrement
+                        debug('<X + #' + job.jobIncrement + '/' + (jobQueue.length() + 1) + '> Enqueue ' + job.name + ' ' + JSON.stringify(item) + ' ' + new Date(item.timestamp*1e3))
+                        jobQueue.push({ job:job, item:item, entuOptions }, function(err) {
+                            if (err) {
+                                debug('<X - #' + job.jobIncrement + '/' + (jobQueue.length() + 1) + '> Errored ' + job.name + ' ' + JSON.stringify(item) + ' ' + new Date(item.timestamp*1e3))
+                                return reject(err)
                             }
-                            debug('Processed ' + job.name + ' ' + JSON.stringify(item) + ' ' + new Date(item.timestamp*1e3), 'Left in queue: ' + jobQueue.length())
+                            updateTs(item.timestamp)
+                            debug('<X - #' + job.jobIncrement + '/' + (jobQueue.length() + 1) + '> Processed ' + job.name + ' ' + JSON.stringify(item) + ' ' + new Date(item.timestamp*1e3))
                         })
-                    } else {
+                        debug('<X + #' + job.jobIncrement + '/' + (jobQueue.length()) + '> Enqueued ' + new Date(item.timestamp*1e3))
+                    }
+                    else {
+                        updateTs(item.timestamp)
                         skipDefinition ++
                     }
                 })
-                debug(job.name + ' skipped(c/d): ' + (skipChanged + skipDefinition) + '(' + skipChanged + '/' + skipDefinition + ')')
+                // debug(job.name + ' skipped(c/d): ' + (skipChanged + skipDefinition) + '(' + skipChanged + '/' + skipDefinition + ')')
             })
             .then(function() {
-                debug(job.name + ' Relaxing for ' + job.relaxBetween.roundtripMinutes + ' minutes.')
-                setTimeout(next, job.relaxBetween.roundtripMinutes * 500)
+                // debug(job.name + ' Relaxing for ' + job.relaxBetween.roundtripMinutes + ' minutes.')
+                setTimeout(next, job.relaxBetween.roundtripMinutes * 6e3)
             })
+            .catch(function(reason) {
+                debug('Job ' + job.name + ' stumbled.', reason, 'Relaxing for ' + job.relaxBetween.roundtripMinutes + ' minutes.')
+                setTimeout(next, job.relaxBetween.roundtripMinutes * 6e3)
+            })
+
         },
         function(err) {
-            if (err) { reject(err) }
+            if (err) { return reject(err) }
         })
 
     })
