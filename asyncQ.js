@@ -13,10 +13,12 @@ var CPU_COUNT = 4
 
 // Generate structure like in ./data flow model.md
 function prepareTasks(updateTask, results, callback) {
+    function trimExtension(filename) {
+        var extension = path.extname(filename)
+        return filename.substr(0, filename.length - extension.length)
+    }
     function targetFilename(sourceFilename, template) {
-        var sourceExtName = path.extname(sourceFilename)
-        sourceFilename = sourceFilename.substr(0, sourceFilename.length - sourceExtName.length)
-        return template.fileNamePrefix + sourceFilename + template.fileNameSuffix + '.' + template.format
+        return template.fileNamePrefix + trimExtension(sourceFilename) + template.fileNameSuffix + '.' + template.format
     }
     // debug('1:', JSON.stringify(updateTask))
     entu.getEntity(updateTask.item.id, results.entuOptions)
@@ -105,7 +107,7 @@ function prepareTasks(updateTask, results, callback) {
                     // - if current file needs to be removed (returnTask.toRemove);
                     // - if new file needs to be created (returnTask.toKeep).
                     returnTask.toRemove = returnTask.toRemove.filter(function(a){
-                        if (a.value === target.fileName) {
+                        if (trimExtension(a.value) === trimExtension(target.fileName)) {
                             toCreate.targets.splice(currentTargetIx, 1)
                             return false
                         } else {
@@ -113,7 +115,7 @@ function prepareTasks(updateTask, results, callback) {
                         }
                     })
                     returnTask.toKeep.forEach(function(a) {
-                        if (a.value === target.fileName) {
+                        if (trimExtension(a.value) === trimExtension(target.fileName)) {
                             toCreate.targets.splice(currentTargetIx, 1)
                         }
                     })
@@ -355,7 +357,7 @@ function removeExtra(results, callback) {
 
 
 var jobQueue = async.queue( function (updateTask, callback) {
-    debug('   <X = #' + updateTask.job.jobIncrement + '> Executing task for job "' + updateTask.job.name + '" queue: ' + JSON.stringify(updateTask.item))
+    debug('   <X = #' + updateTask.jobIncrement + '> Executing task for job "' + updateTask.job.name + '" queue: ' + JSON.stringify(updateTask.item))
     async.auto({
         entuOptions: function(callback) {
             return callback(null, updateTask.entuOptions)
@@ -373,7 +375,7 @@ var jobQueue = async.queue( function (updateTask, callback) {
         }],
     }, function(err, results) {
         if (err) {
-            debug('   <X ! #' + updateTask.job.jobIncrement + '> Task failed for job "' + updateTask.job.name + '" task item: ' + JSON.stringify(updateTask.item), err)
+            debug('   <X ! #' + updateTask.jobIncrement + '> Task failed for job "' + updateTask.job.name + '" task item: ' + JSON.stringify(updateTask.item), err)
             return callback('Task failed for job "' + updateTask.job.name +  + '\n' + err)
         }
         var toCreate = op.get(results, ['prepareTasks', 'tasks'], []).reduce(function(sum, a) {
@@ -385,10 +387,10 @@ var jobQueue = async.queue( function (updateTask, callback) {
             return sum + op.get(a, ['toRemove', 'targets'], []).length
         }, 0)
         if (toCreate + toRemove) {
-            debug('#' + updateTask.job.jobIncrement + ' Job "' + updateTask.job.name + '", task item: ' + JSON.stringify(updateTask.item) + ' at ', new Date(updateTask.item.timestamp * 1e3))
-            debug('#' + updateTask.job.jobIncrement + ' |__ :', JSON.stringify({toCreate:toCreate, toRemove:toRemove}))
+            debug('#' + updateTask.jobIncrement + ' Job "' + updateTask.job.name + '", task item: ' + JSON.stringify(updateTask.item) + ' at ', new Date(updateTask.item.timestamp * 1e3))
+            debug('#' + updateTask.jobIncrement + ' |__ :', JSON.stringify({toCreate:toCreate, toRemove:toRemove}))
         }
-        debug('   <X . #' + updateTask.job.jobIncrement + '> Task finished for job "' + updateTask.job.name + '" queue: ' + JSON.stringify(updateTask.item))
+        debug('   <X . #' + updateTask.jobIncrement + '> Task finished for job "' + updateTask.job.name + '" queue: ' + JSON.stringify(updateTask.item))
         return callback(null)
     })
 }, 1)
