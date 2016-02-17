@@ -15,10 +15,10 @@ var jobIncrement = 0
 
 function runJob(job, entuOptions) {
     function updateTs(ts) {
-        if (entuOptions.timestamp === ts) { return }
-        entuOptions.timestamp = ts + 0.5
-        fs.writeFileSync(jobFilename, ts + 0.5)
-        // debug('Update TS: ' + jobFilename, ts, new Date(ts * 1e3))
+        if (entuOptions.timestamp < ts) {
+            entuOptions.timestamp = ts + 0.5
+            fs.writeFileSync(jobFilename, ts + 0.5)
+        }
     }
 
     var jobFilename = path.join(TS_DIR, job.entuUrl.split('//')[1])
@@ -39,8 +39,8 @@ function runJob(job, entuOptions) {
                 result.updates.sort(function(a,b) { return a.timestamp - b.timestamp })
                 // debug('----- sorted ' + JSON.stringify(result.updates))
                 result.updates.forEach(function(item) {
+                    updateTs(item.timestamp)
                     if (item.action !== 'changed at') {
-                        updateTs(item.timestamp)
                         skipChanged ++
                         return
                     }
@@ -57,14 +57,14 @@ function runJob(job, entuOptions) {
                                     debug('<X - #' + jobIncrement + '/' + (jobQueue.length() + 1) + '> Errored ' + job.name + ' ' + JSON.stringify(item) + ' ' + new Date(item.timestamp*1e3))
                                     return reject(err)
                                 }
-                                updateTs(item.timestamp)
                                 debug('<X - #' + jobIncrement + '/' + (jobQueue.length() + 1) + '> Processed ' + job.name + ' ' + JSON.stringify(item) + ' ' + new Date(item.timestamp*1e3))
                             })
                         })(jobIncrement, job, item)
+                        return
                     }
                     else {
-                        updateTs(item.timestamp)
                         skipDefinition ++
+                        return
                     }
                 })
                 // debug(job.name + ' skipped(c/d): ' + (skipChanged + skipDefinition) + '(' + skipChanged + '/' + skipDefinition + ')')
