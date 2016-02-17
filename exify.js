@@ -27,6 +27,7 @@ function exify(filename, tags, callback) {
         }
         return '-' + tag.param + '="' + tag.value + '"'
     })
+    command.push('-overwrite_original')
     command.push(filename)
 
     var exif = require('child_process').spawn('exiftool', command)
