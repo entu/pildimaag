@@ -49,8 +49,8 @@ function runJob(job, entuOptions) {
                         .reduce(function(_defs, a) { return _defs.concat(op.get(a, ['source', 'definitions'], [])) }, [])
                         .some(function(_def) { return _def === item.definition })
                     ) {
-                        jobIncrement = jobIncrement + 1;
-                        (function(jobIncrement, job, item) {
+                        jobIncrement = jobIncrement + 1
+                        ;(function(jobIncrement, job, item) {
                             debug('<X + #' + jobIncrement + '/' + (jobQueue.length() + 1) + '> Enqueue ' + job.name + ' ' + JSON.stringify(item) + ' ' + new Date(item.timestamp*1e3))
                             jobQueue.push({ jobIncrement:jobIncrement, job:job, item:item, entuOptions }, function(err) {
                                 if (err) {

@@ -158,7 +158,7 @@ function createMissing(results, callback) {
 
     var sources = results.prepareTasks.tasks.reduce(function(arr, a) { return arr.concat(a.toCreate) }, [])
     // debug('Process sources', JSON.stringify(sources, null, 4))
-    async.each(sources, function iterator(source, callback) {
+    async.eachSeries(sources, function iterator(source, callback) {
         // debug('Process source', JSON.stringify(source, null, 4))
         var entuSourceStream = entu.createReadStream(source.file, results.entuOptions)
             .on('error', function(err) {
