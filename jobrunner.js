@@ -49,17 +49,18 @@ function runJob(job, entuOptions) {
                         .reduce(function(_defs, a) { return _defs.concat(op.get(a, ['source', 'definitions'], [])) }, [])
                         .some(function(_def) { return _def === item.definition })
                     ) {
-                        job.jobIncrement = ++jobIncrement
-                        debug('<X + #' + job.jobIncrement + '/' + (jobQueue.length() + 1) + '> Enqueue ' + job.name + ' ' + JSON.stringify(item) + ' ' + new Date(item.timestamp*1e3))
-                        jobQueue.push({ job:job, item:item, entuOptions }, function(err) {
-                            if (err) {
-                                debug('<X - #' + job.jobIncrement + '/' + (jobQueue.length() + 1) + '> Errored ' + job.name + ' ' + JSON.stringify(item) + ' ' + new Date(item.timestamp*1e3))
-                                return reject(err)
-                            }
-                            updateTs(item.timestamp)
-                            debug('<X - #' + job.jobIncrement + '/' + (jobQueue.length() + 1) + '> Processed ' + job.name + ' ' + JSON.stringify(item) + ' ' + new Date(item.timestamp*1e3))
-                        })
-                        debug('<X + #' + job.jobIncrement + '/' + (jobQueue.length()) + '> Enqueued ' + new Date(item.timestamp*1e3))
+                        jobIncrement = jobIncrement + 1;
+                        (function(jobIncrement, job, item) {
+                            debug('<X + #' + jobIncrement + '/' + (jobQueue.length() + 1) + '> Enqueue ' + job.name + ' ' + JSON.stringify(item) + ' ' + new Date(item.timestamp*1e3))
+                            jobQueue.push({ jobIncrement:jobIncrement, job:job, item:item, entuOptions }, function(err) {
+                                if (err) {
+                                    debug('<X - #' + jobIncrement + '/' + (jobQueue.length() + 1) + '> Errored ' + job.name + ' ' + JSON.stringify(item) + ' ' + new Date(item.timestamp*1e3))
+                                    return reject(err)
+                                }
+                                updateTs(item.timestamp)
+                                debug('<X - #' + jobIncrement + '/' + (jobQueue.length() + 1) + '> Processed ' + job.name + ' ' + JSON.stringify(item) + ' ' + new Date(item.timestamp*1e3))
+                            })
+                        })(jobIncrement, job, item)
                     }
                     else {
                         updateTs(item.timestamp)
