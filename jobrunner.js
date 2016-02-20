@@ -51,14 +51,18 @@ function runJob(job, entuOptions) {
                     ) {
                         jobIncrement = jobIncrement + 1
                         ;(function(jobIncrement, job, item) {
-                            debug('<X + #' + jobIncrement + '/' + (jobQueue.length() + 1) + '> Enqueue ' + job.name + ' ' + JSON.stringify(item) + ' ' + new Date(item.timestamp*1e3))
-                            jobQueue.push({ jobIncrement:jobIncrement, job:job, item:item, entuOptions }, function(err) {
-                                if (err) {
-                                    debug('<X - #' + jobIncrement + '/' + (jobQueue.length() + 1) + '> Errored ' + job.name + ' ' + JSON.stringify(item) + ' ' + new Date(item.timestamp*1e3))
-                                    return reject(err)
-                                }
-                                debug('<X - #' + jobIncrement + '/' + (jobQueue.length() + 1) + '> Processed ' + job.name + ' ' + JSON.stringify(item) + ' ' + new Date(item.timestamp*1e3))
-                            })
+                            if (!jobQueue.tasks.some(function(t) {
+                                return t.data.job.name === job.name && t.data.item.id === item.id
+                            })) {
+                                debug('<X + #' + jobIncrement + '/' + (jobQueue.length() + 1) + '> Enqueue ' + job.name + ' ' + JSON.stringify(item) + ' ' + new Date(item.timestamp*1e3))
+                                jobQueue.push({ jobIncrement:jobIncrement, job:job, item:item, entuOptions }, function(err) {
+                                    if (err) {
+                                        debug('<X - #' + jobIncrement + '/' + (jobQueue.length() + 1) + '> Errored ' + job.name + ' ' + JSON.stringify(item) + ' ' + new Date(item.timestamp*1e3))
+                                        return reject(err)
+                                    }
+                                    debug('<X - #' + jobIncrement + '/' + (jobQueue.length() + 1) + '> Processed ' + job.name + ' ' + JSON.stringify(item) + ' ' + new Date(item.timestamp*1e3))
+                                })
+                            }
                         })(jobIncrement, job, item)
                         return
                     }
