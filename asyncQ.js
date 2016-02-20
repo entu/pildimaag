@@ -157,6 +157,9 @@ function createMissing(results, callback) {
     }, 0) === 0) { return callback(null) }
 
     var sources = results.prepareTasks.tasks.reduce(function(arr, a) { return arr.concat(a.toCreate) }, [])
+    sources.sort(function(a, b) {
+        return a.value > b.value ? 1 : -1
+    })
     // debug('Process sources', JSON.stringify(sources, null, 4))
     async.eachSeries(sources, function iterator(source, callback) {
         // debug('Process source', JSON.stringify(source, null, 4))
