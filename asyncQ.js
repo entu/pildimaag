@@ -9,7 +9,7 @@ var passThrough     = require('stream').PassThrough
 
 var exify           = require('./exify.js')
 
-var CPU_COUNT = 4
+// var CPU_COUNT = 4
 
 // Generate structure like in ./data flow model.md
 function prepareTasks(updateTask, results, callback) {
