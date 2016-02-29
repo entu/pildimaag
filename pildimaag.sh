@@ -4,7 +4,7 @@ mkdir -p /data/pildimaag/code
 cd /data/pildimaag/code
 
 git clone -q https://github.com/mitselek/pildimaag.git ./
-git checkout -q aysnc-promise
+git checkout -q master
 git pull
 
 printf "\n\n"
@@ -17,17 +17,10 @@ docker rm pildimaag
 docker run -d \
     --name="pildimaag" \
     --restart="always" \
-<<<<<<< HEAD
     --cpu-shares=512 \
     --memory="1g" \
     --env="NODE_ENV=production" \
     --env="VERSION=$version" \
-    --env="PM_ENTITY=" \
-    --env="PM_KEY=" \
-    --env="PM_NIGHT_MINUTES=420" \
-=======
-    --memory="512m" \
     --env="USER=" \
     --env="KEY=" \
->>>>>>> aysnc-promise
     pildimaag:latest

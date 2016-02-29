@@ -28,12 +28,9 @@ build/Release
 node_modules
 
 private.sh
-<<<<<<< HEAD
-=======
 
 timestamps
 
 entulib.js
 
 test.js
->>>>>>> aysnc-promise
