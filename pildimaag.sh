@@ -17,6 +17,7 @@ docker rm pildimaag
 docker run -d \
     --name="pildimaag" \
     --restart="always" \
+<<<<<<< HEAD
     --cpu-shares=512 \
     --memory="1g" \
     --env="NODE_ENV=production" \
@@ -24,4 +25,9 @@ docker run -d \
     --env="PM_ENTITY=" \
     --env="PM_KEY=" \
     --env="PM_NIGHT_MINUTES=420" \
+=======
+    --memory="512m" \
+    --env="USER=" \
+    --env="KEY=" \
+>>>>>>> aysnc-promise
     pildimaag:latest
