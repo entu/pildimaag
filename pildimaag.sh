@@ -1,6 +1,6 @@
 #!/bin/bash
 
-mkdir -p /data/pildimaag/code
+mkdir -p /data/pildimaag/code/temp
 cd /data/pildimaag/code
 
 git clone -q https://github.com/mitselek/pildimaag.git ./
