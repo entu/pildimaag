@@ -254,7 +254,7 @@ function createMissing(results, callback) {
                             var finalBgStream = fs.createWriteStream(appendBgFilename)
 
                             var width = target.maxWidth ? target.maxWidth : target.fixWidth
-                            target.subs.text = target.subs.text || 'abrakadabra mims leidfg asdgiooh asgoasdgl adfgladskg ais gaodshgoa sdiohia sdgas.'
+                            target.subs.text = target.subs.text || ''
                             gm(width, target.subs.height, '#' + target.subs.backgroundColor)
                             .fontSize(12)
                             .fill("#000000")
@@ -305,7 +305,8 @@ function createMissing(results, callback) {
                             // debug('Resizing max-max')
                             gm(passToResize)
                             .resize(target.maxWidth, target.maxHeight)
-                            .extent(target.maxWidth, target.maxHeight)
+                            // .gravity('South')
+                            // .extent(target.maxWidth, target.maxHeight)
                             .gravity('Center')
                             .stream(target.format)
                             .pipe(passCropped)
