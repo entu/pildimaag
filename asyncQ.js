@@ -20,7 +20,7 @@ function prepareTasks(updateTask, results, callback) {
     function targetFilename(sourceFilename, template) {
         return template.fileNamePrefix + trimExtension(sourceFilename) + template.fileNameSuffix + '.' + template.format
     }
-    // debug('1:', JSON.stringify(updateTask))
+    debug('1:', JSON.stringify(updateTask, null, 4))
     entu.getEntity(updateTask.item.id, results.entuOptions)
     .then(function(opEntity) {
         var returnTasks = op.get(updateTask.job, ['tasks'], []).map(function(_task) { // For every task
