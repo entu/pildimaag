@@ -311,6 +311,16 @@ function createMissing(results, callback) {
                             .stream(target.format)
                             .pipe(passCropped)
                         }
+                        else if (target.fixWidth && !target.maxHeight && !target.fixHeight) {
+                            // debug('Resizing width only')
+                            gm(passToResize)
+                            .resize(target.fixWidth)
+                            // .gravity('South')
+                            // .extent(target.maxWidth, target.maxHeight)
+                            .gravity('Center')
+                            .stream(target.format)
+                            .pipe(passCropped)
+                        }
                     },
                     function(err) {
                         if (err) {
