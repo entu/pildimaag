@@ -23,4 +23,5 @@ docker run -d \
     --env="VERSION=$version" \
     --env="USER=" \
     --env="KEY=" \
+    --volume="/data/pildimaag/timestamps:/usr/src/pildimaag/timestamps" \
     pildimaag:latest
