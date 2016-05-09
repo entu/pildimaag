@@ -8,7 +8,7 @@ var entu = require('entulib')
 
 var jobQueue = require('./asyncQ.js')
 
-var TS_DIR = __dirname + '/timestamps'
+var TS_DIR = path.join(__dirname, '/timestamps')
 if (!fs.existsSync(TS_DIR)) { fs.mkdirSync(TS_DIR) }
 
 var jobIncrement = 0
@@ -45,11 +45,13 @@ function runJob (job, entuOptions) {
               return
             }
             // If task exists for given definition
-            else if (op.get(job, ['tasks'], [])
+            else if (
+              op.get(job, ['tasks'], [])
                 .reduce(function (_defs, a) { return _defs.concat(op.get(a, ['source', 'definitions'], [])) }, [])
                 .some(function (_def) { return _def === item.definition })
             ) {
               jobIncrement = jobIncrement + 1
+
               ;(function (jobIncrement, job, item) {
                 if (!jobQueue.tasks.some(function (t) {
                   return t.data.job.name === job.name && t.data.item.id === item.id
