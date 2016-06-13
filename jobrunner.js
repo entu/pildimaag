@@ -3,8 +3,10 @@ var path = require('path')
 var debug = require('debug')('app:' + path.basename(__filename).replace('.js', ''))
 var async = require('async')
 var op = require('object-path')
-var RSVP = require('rsvp')
+var Promise = require('bluebird')
 var entu = require('entulib')
+
+Promise.onPossiblyUnhandledRejection(function (error) { throw error })
 
 var jobQueue = require('./asyncQ.js')
 
@@ -21,11 +23,13 @@ function runJob (job, entuOptions) {
     }
   }
 
+  debug('1. Sanity check: ' + op.get(job, ['tasks',0,'targets',0,'subs','text'], 'fail!!!'))
+
   var jobFilename = path.join(TS_DIR, job.entuUrl.split('//')[1])
   if (!fs.existsSync(jobFilename)) { fs.writeFileSync(jobFilename, '1') }
 
   // debug('Task: ', JSON.stringify({task:task, entuOptions:entuOptions}, null, 4))
-  return new RSVP.Promise(function (fulfill, reject) {
+  return new Promise(function (fulfill, reject) {
     // debug('jobFilename: ' + jobFilename)
     async.forever(function (next) {
       entuOptions.timestamp = Number(fs.readFileSync(jobFilename, 'utf8'))
@@ -57,7 +61,7 @@ function runJob (job, entuOptions) {
                   return t.data.job.name === job.name && t.data.item.id === item.id
                 })) {
                   debug('<X + #' + jobIncrement + '/' + (jobQueue.length() + 1) + '> Enqueue ' + job.name + ' ' + JSON.stringify(item) + ' ' + new Date(item.timestamp * 1e3))
-                  jobQueue.push({ jobIncrement: jobIncrement, job: job, item: item, entuOptions }, function (err) {
+                  jobQueue.push({ jobIncrement, job, item, entuOptions }, function (err) {
                     if (err) {
                       debug('<X - #' + jobIncrement + '/' + jobQueue.length() + '> Errored ' + job.name + ' ' + JSON.stringify(item) + ' ' + new Date(item.timestamp * 1e3))
                       return reject(err)

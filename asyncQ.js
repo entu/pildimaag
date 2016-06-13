@@ -1,13 +1,13 @@
-var fs = require('fs')
-var path = require('path')
-var debug = require('debug')('app:' + path.basename(__filename).replace('.js', ''))
-var async = require('async')
-var op = require('object-path')
-var entu = require('entulib')
-var gm = require('gm')
-var PassThrough = require('stream').PassThrough
+const fs = require('fs')
+const path = require('path')
+const debug = require('debug')('app:' + path.basename(__filename).replace('.js', ''))
+const async = require('async')
+const op = require('object-path')
+const entu = require('entulib')
+const gm = require('gm')
+const PassThrough = require('stream').PassThrough
 
-var exify = require('./exify.js')
+const exify = require('./exify.js')
 
 // var CPU_COUNT = 4
 
@@ -20,7 +20,7 @@ function prepareTasks (updateTask, results, callback) {
   function targetFilename (sourceFilename, template) {
     return template.fileNamePrefix + trimExtension(sourceFilename) + template.fileNameSuffix + '.' + template.format
   }
-  debug('1:', JSON.stringify(updateTask, null, 4))
+  debug('1: updateTask', JSON.stringify(updateTask, null, 4))
   entu.getEntity(updateTask.item.id, results.entuOptions)
     .then(function (opEntity) {
       var returnTasks = op.get(updateTask.job, ['tasks'], []).map(function (_task) { // For every task
@@ -33,7 +33,7 @@ function prepareTasks (updateTask, results, callback) {
         if (op.get(_task, ['source', 'definitions'], []).indexOf(op.get(updateTask, ['item', 'definition'])) === -1) {
           return returnTask
         }
-        // debug('1:', JSON.stringify(updateTask.job))
+        debug('1.1 updateTask.job:', JSON.stringify(updateTask.job, null, 4))
 
         // Collect all existing files that are candidates for removal
         // If _template.forceKeepInSync, then all existing files are candidates
@@ -76,12 +76,12 @@ function prepareTasks (updateTask, results, callback) {
               exif: _template.exif
             }
             if (target.subs) {
-              target.subs.text = target.subs.text ? target.subs.text.split('@mapping._id@').join(opEntity.get(['id'])) : ''
+              target.subs.mappedText = target.subs.text ? target.subs.text.split('@mapping._id@').join(opEntity.get(['id'])) : ''
               Object.keys(target.metaFields).forEach(function (label) {
                 var mappedTo = target.metaFields[label]
                 var search = '@mapping.' + label + '@'
                 var replace = opEntity.get(['properties', mappedTo, 0, 'value'], 'N/A')
-                target.subs.text = target.subs.text.split(search).join(replace)
+                target.subs.mappedText = target.subs.mappedText.split(search).join(replace)
               })
             }
             if (target.exif) {
@@ -245,7 +245,7 @@ function createMissing (results, callback) {
                 debug('fs.unlink(appendBgFilename)' + appendBgFilename)
                 fs.unlink(appendBgFilename)
               })
-              debug('subbing with ' + target.subs.text)
+              debug('subbing with ' + target.subs.mappedText)
               var passToAddSubs = new PassThrough()
               passCropped.pipe(passToAddSubs)
 
@@ -253,12 +253,12 @@ function createMissing (results, callback) {
               var finalBgStream = fs.createWriteStream(appendBgFilename)
 
               var width = target.maxWidth ? target.maxWidth : target.fixWidth
-              target.subs.text = target.subs.text || ''
+              target.subs.mappedText = target.subs.mappedText || ''
               gm(width, target.subs.height, '#' + target.subs.backgroundColor)
                 .fontSize(12)
                 .fill('#000000')
                 // .fill('#' + ('000000' + parseInt(Math.random()*256*256*256, 10).toString(16)).slice(-6))
-                .drawText(0, 0, target.subs.text, 'center')
+                .drawText(0, 0, target.subs.mappedText, 'center')
                 .quality(100)
                 .stream('png')
                 .pipe(finalBgStream)
@@ -368,7 +368,9 @@ function removeExtra (results, callback) {
 }
 
 var jobQueue = async.queue(function (updateTask, callback) {
-  debug('   <X = #' + updateTask.jobIncrement + '> Executing task for job "' + updateTask.job.name + '" queue: ' + JSON.stringify(updateTask.item))
+  debug('   <X = #' + updateTask.jobIncrement + '> Executing task for job "' + updateTask.job.name +
+    '" queue: ' + JSON.stringify(updateTask.item) +
+    ' Sanity check: ' + JSON.stringify(updateTask.job.tasks[0].targets[0].subs.mappedText))
   async.auto({
     entuOptions: function (callback) {
       return callback(null, updateTask.entuOptions)

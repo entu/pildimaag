@@ -4,14 +4,16 @@ var async = require('async')
 var path = require('path')
 var debug = require('debug')('app:' + path.basename(__filename).replace('.js', ''))
 var runJob = require('./jobrunner')
-var RSVP = require('rsvp')
+var Promise = require('bluebird')
 var entu = require('entulib')
 var jsonlint = require('jsonlint')
+
+Promise.onPossiblyUnhandledRejection(function (error) { throw error })
 
 console.log('\n==================== Launching pildimaag ====================\n---------- ' + new Date() + ' ----------')
 
 function readConfiguration () {
-  return new RSVP.Promise(function (fulfill, reject) {
+  return new Promise(function (fulfill, reject) {
     entu.getEntity(process.env.USER, {
       entuUrl: 'https://entu.entu.ee',
       user: process.env.USER,
