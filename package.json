@@ -1,6 +1,6 @@
 {
   "name": "pildimaag",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "private": true,
   "dependencies": {
     "async": "^1.5.2",
