@@ -336,7 +336,8 @@ function createMissing (results, callback) {
     function (err) {
       if (err) {
         debug('123: Failed to process source.', err)
-        return callback('Failed to process source.' + '\n' + err)
+        return callback(null)
+        // return callback('Failed to process source.' + '\n' + err)
       }
       debug('Sources successfully processed.')
       return callback(null)
@@ -389,7 +390,7 @@ var jobQueue = async.queue(function (updateTask, callback) {
   }, function (err, results) {
     if (err) {
       debug('   <X ! #' + updateTask.jobIncrement + '> Task failed for job "' + updateTask.job.name + '" task item: ' + JSON.stringify(updateTask.item), err)
-      return callback('Task failed for job "' + updateTask.job.name + '\n' + err)
+      return callback('Task failed for job "' + updateTask.job.name + '"\n' + err)
     }
     var toCreate = op.get(results, ['prepareTasks', 'tasks'], []).reduce(function (sum, a) {
       return sum + op.get(a, ['toCreate'], []).reduce(function (sum, b) {
