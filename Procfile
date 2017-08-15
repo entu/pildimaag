@@ -1,1 +1,1 @@
-web: node ./index.js
+maag: node ./index.js
