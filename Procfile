@@ -1,1 +1,0 @@
-maag: node ./index.js
