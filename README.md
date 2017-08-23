@@ -9,8 +9,3 @@
 - docker run -e "PM_ENTITY=155005" -e "PM_KEY=378c2VuY" -e "PM_NIGHT_MINUTES=420" -d --name pildimaag mitselek/pildimaag:latest
 - docker run -e "PM_ENTITY=155005" -e "PM_KEY=378c2VuY" -e "PM_NIGHT_MINUTES=420" -d -v ~/Documents/github/pildimaag/:/pildimaag/ --name pildimaag mitselek/pildimaag
 - docker logs -f pildimaag
-
-### RESTART and LOG
-- docker kill pildimaag
-- docker start pildimaag
-- docker logs -f --tail=15 pildimaag
