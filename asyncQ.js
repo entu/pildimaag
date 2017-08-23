@@ -175,7 +175,7 @@ function createMissing (results, callback) {
           return callback(new ReferenceError('Source not available at ' + source.file))
         }
         // return callback(null)
-        var originalFilepath = 'temp/ORIGINAL_' + source.id
+        var originalFilepath = './temp/ORIGINAL_' + source.id
         debug('fs.createWriteStream(originalFilepath): ' + originalFilepath)
         var originalWriteStream = fs.createWriteStream(originalFilepath)
         entuSourceStream.pipe(originalWriteStream)
@@ -192,14 +192,14 @@ function createMissing (results, callback) {
               return callback(new ReferenceError('Failed to create readStream from ' + originalFilepath + '\n' + err))
             }
 
-            var finalFilePath = 'temp/' + source.id + '.' + ix + '.' + target.format
+            var finalFilePath = './temp/' + source.id + '.' + ix + '.' + target.format
             debug('fs.createWriteStream(finalFilePath): ' + finalFilePath)
             var finalStream = fs.createWriteStream(finalFilePath)
             finalStream.on('finish', function () {
               // debug('Apply EXIF')
               exify(finalFilePath, target.exif, function (err, response) {
                 if (err) {
-                  // debug( 'WARNING: EXIF has to say this:\n', err)
+                  debug( 'WARNING: EXIF has to say this:\n', err)
                 }
                 // debug('finished processing of ' + JSON.stringify(source) + '.' + JSON.stringify(target), JSON.stringify(results.entuOptions))
                 try {
@@ -241,7 +241,7 @@ function createMissing (results, callback) {
                 .stream(target.format)
                 .pipe(finalStream)
             } else {
-              var appendBgFilename = 'temp/bg_' + source.id + '.' + ix + '.png'
+              var appendBgFilename = './temp/bg_' + source.id + '.' + ix + '.png'
               finalStream.on('finish', function () {
                 debug('fs.unlink(appendBgFilename)' + appendBgFilename)
                 fs.unlink(appendBgFilename)
