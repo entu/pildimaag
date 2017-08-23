@@ -175,7 +175,7 @@ function createMissing (results, callback) {
           return callback(new ReferenceError('Source not available at ' + source.file))
         }
         // return callback(null)
-        var originalFilepath = './temp/ORIGINAL_' + source.id
+        var originalFilepath = 'temp/ORIGINAL_' + source.id
         debug('fs.createWriteStream(originalFilepath): ' + originalFilepath)
         var originalWriteStream = fs.createWriteStream(originalFilepath)
         entuSourceStream.pipe(originalWriteStream)

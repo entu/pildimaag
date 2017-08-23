@@ -13,6 +13,12 @@ Promise.onPossiblyUnhandledRejection(function (error) { throw error })
 
 console.log('\n==================== Launching pildimaag ====================\n---------- ' + new Date() + ' ----------')
 
+var fs = require('fs')
+var dir = './temp'
+if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir)
+}
+
 function readConfiguration () {
   return new Promise(function (fulfill, reject) {
     entu.getEntity(process.env.USER, {
