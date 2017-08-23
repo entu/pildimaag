@@ -20,7 +20,7 @@ function prepareTasks (updateTask, results, callback) {
   function targetFilename (sourceFilename, template) {
     return template.fileNamePrefix + trimExtension(sourceFilename) + template.fileNameSuffix + '.' + template.format
   }
-  debug('1: updateTask', JSON.stringify(updateTask, null, 4))
+  // debug('1: updateTask', JSON.stringify(updateTask, null, 4))
   entu.getEntity(updateTask.item.id, results.entuOptions)
     .then(function (opEntity) {
       var returnTasks = op.get(updateTask.job, ['tasks'], []).map(function (_task) { // For every task
@@ -33,7 +33,7 @@ function prepareTasks (updateTask, results, callback) {
         if (op.get(_task, ['source', 'definitions'], []).indexOf(op.get(updateTask, ['item', 'definition'])) === -1) {
           return returnTask
         }
-        debug('1.1 updateTask.job:', JSON.stringify(updateTask.job, null, 4))
+        // debug('1.1 updateTask.job:', JSON.stringify(updateTask.job, null, 4))
 
         // Collect all existing files that are candidates for removal
         // If _template.forceKeepInSync, then all existing files are candidates
