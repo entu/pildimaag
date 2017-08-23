@@ -219,6 +219,7 @@ function createMissing (results, callback) {
                       return callback(null)
                     })
                     .catch(function (err) {
+                      console.log('Something went wrong with upload', err)
                       debug('Something went wrong with upload', err)
                       return callback(new Error('Something went wrong with upload' + '\n' + err))
                     })
