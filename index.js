@@ -7,6 +7,7 @@ var runJob = require('./jobrunner')
 var Promise = require('bluebird')
 var entu = require('entulib')
 var jsonlint = require('jsonlint')
+var http = require('http')
 
 Promise.onPossiblyUnhandledRejection(function (error) { throw error })
 
@@ -72,3 +73,9 @@ function startJobs (jobs) {
       debug('All jobs launched.', JSON.stringify(jobs.map(function (a) { return a.name })))
     })
 }
+
+
+http.createServer(function (req, res) {
+    res.writeHead(200, {'Content-Type': 'text/plain'})
+    res.end('OK')
+}).listen(process.env.PORT)
