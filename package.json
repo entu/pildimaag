@@ -6,7 +6,6 @@
     "async": "^1.5.2",
     "debug": "^2.2.0",
     "entulib": "^1.0.0",
-    "exiftool": "0.0.3",
     "gm": "^1.21.1",
     "jsonlint": "^1.6.2",
     "newrelic": "*",

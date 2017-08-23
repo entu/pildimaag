@@ -7,7 +7,7 @@ const entu = require('entulib')
 const gm = require('gm')
 const PassThrough = require('stream').PassThrough
 
-const exify = require('./exify.js')
+// const exify = require('./exify.js')
 
 // var CPU_COUNT = 4
 
@@ -197,10 +197,10 @@ function createMissing (results, callback) {
             var finalStream = fs.createWriteStream(finalFilePath)
             finalStream.on('finish', function () {
               // debug('Apply EXIF')
-              exify(finalFilePath, target.exif, function (err, response) {
-                if (err) {
-                  debug( 'WARNING: EXIF has to say this:\n', err)
-                }
+              // exify(finalFilePath, target.exif, function (err, response) {
+              //   if (err) {
+              //     debug( 'WARNING: EXIF has to say this:\n', err)
+              //   }
                 // debug('finished processing of ' + JSON.stringify(source) + '.' + JSON.stringify(target), JSON.stringify(results.entuOptions))
                 try {
                   var fileStats = fs.statSync(finalFilePath)
@@ -227,7 +227,7 @@ function createMissing (results, callback) {
                   debug('Something went wrong with upload', err)
                   return callback(new Error('Something went wrong with upload' + '\n' + err))
                 }
-              })
+              // })
             })
 
             var passToResize = new PassThrough()
