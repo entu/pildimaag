@@ -237,7 +237,7 @@ function createMissing (results, callback) {
             if (!target.subs) {
               // debug('no subs')
               gm(passCropped)
-                .quality(100)
+                .quality(target.quality || 100)
                 .stream(target.format)
                 .pipe(finalStream)
             } else {
@@ -260,7 +260,7 @@ function createMissing (results, callback) {
                 .fill('#000000')
                 // .fill('#' + ('000000' + parseInt(Math.random()*256*256*256, 10).toString(16)).slice(-6))
                 .drawText(0, 0, target.subs.mappedText, 'center')
-                .quality(100)
+                .quality(target.quality || 100)
                 .stream('png')
                 .pipe(finalBgStream)
 
