@@ -1,4 +1,4 @@
-FROM node:6-slim
+FROM node:10-slim
 
 ADD ./ /usr/src/pildimaag
 WORKDIR /usr/src/pildimaag
