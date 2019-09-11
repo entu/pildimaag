@@ -1,0 +1,13 @@
+version: '3'
+services:
+    pildimaag:
+        build:
+            context: https://github.com/mitselek/pildimaag.git
+        container_name: pildimaag
+        restart: always
+        environment:
+            NODE_ENV: production
+            USER:
+            KEY:
+        volumes:
+            - /data/pildimaag:/usr/src/pildimaag/timestamps

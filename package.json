@@ -3,13 +3,15 @@
   "version": "1.2.3",
   "private": true,
   "dependencies": {
-    "async": "1.5.*",
-    "debug": "2.2.*",
-    "entulib": "1.0.*",
-    "gm": "1.21.*",
-    "jsonlint": "1.6.*",
+    "async": "1.5.2",
+    "debug": "^4.1.1",
+    "entulib": "github:mitselek/entulib",
+    "exiftool": "0.0.3",
+    "gm": "^1.23.1",
+    "jsonlint": "1.6.2",
     "newrelic": "*",
-    "object-path": "0.9.*",
-    "request": "*"
+    "object-path": "0.9.2",
+    "request": "*",
+    "rsvp": "3.2.1"
   }
 }
