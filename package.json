@@ -4,8 +4,8 @@
   "private": true,
   "dependencies": {
     "async": "1.5.2",
-    "debug": "2.2.0",
-    "entulib": "mitselek/entulib",
+    "debug": "^4.1.1",
+    "entulib": "github:mitselek/entulib",
     "exiftool": "0.0.3",
     "gm": "^1.23.1",
     "jsonlint": "1.6.2",
