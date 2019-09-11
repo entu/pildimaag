@@ -7,6 +7,8 @@ RUN apt-get install -y libimage-exiftool-perl
 ADD ./ /usr/src/pildimaag
 WORKDIR /usr/src/pildimaag
 RUN mkdir -p /usr/src/pildimaag/temp
+
+RUN npm install uuid
 RUN cd /usr/src/pildimaag && npm --production install
 
 CMD ["node", "/usr/src/pildimaag/index.js"]
