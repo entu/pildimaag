@@ -1,4 +1,4 @@
-FROM node:6-slim
+FROM node:10-slim
 
 RUN apt-get update && apt-get install -y --no-install-recommends apt-utils
 RUN apt-get install -y graphicsmagick git
