@@ -371,7 +371,7 @@ function removeExtra (results, callback) {
 
 var jobQueue = async.queue(function (updateTask, callback) {
   debug('   <X = #' + updateTask.jobIncrement + '> Executing task for job "' + updateTask.job.name +
-    '" queue: ' + JSON.stringify(updateTask.item) +
+    // '" queue: ' + JSON.stringify(updateTask.item) +
     '" task: ' + JSON.stringify(updateTask) +
     ' Sanity check: ' + op.get(updateTask, ['job','tasks',0,'targets',0,'subs','mappedText'], 'Fail'))
   async.auto({
