@@ -23,7 +23,7 @@ function runJob (job, entuOptions) {
     }
   }
 
-  debug('1. Sanity check: ' + op.get(job, ['tasks',0,'targets',0,'subs','text'], 'fail!!!') + op.get(job))
+  debug('1. Sanity check: ' + op.get(job, ['tasks',0,'targets',0,'subs','text'], 'fail!!!') + op.get(job, ['tasks']))
 
   var jobFilename = path.join(TS_DIR, job.entuUrl.split('//')[1])
   if (!fs.existsSync(jobFilename)) { fs.writeFileSync(jobFilename, '1') }
