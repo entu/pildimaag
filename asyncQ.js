@@ -40,7 +40,7 @@ function prepareTasks (updateTask, results, callback) {
         //   else only files created by Pildimaag will be evaluated for removal
         _task.targets.forEach(function (_template) { // For every template
           // debug('1.1:', JSON.stringify(_template))
-          var existingFiles = opEntity.get(['properties', _template.property], [])
+          var existingFiles = opEntity.get(['properties', _template.property, 'values'], [])
           // debug('1.2:', JSON.stringify(existingFiles))
           // NOTE forceKeepInSync indicates, if we want to remove files created by others
           existingFiles = existingFiles.filter(function (a) {
@@ -54,7 +54,7 @@ function prepareTasks (updateTask, results, callback) {
         })
         // debug('2:', JSON.stringify(returnTask))
 
-        opEntity.get(['properties', _task.source.property], []).forEach(function (_toCreate) { // For every source file
+        opEntity.get(['properties', _task.source.property, 'values'], []).forEach(function (_toCreate) { // For every source file
           var toCreate = {
             value: _toCreate.value,
             id: _toCreate.id,
@@ -80,7 +80,7 @@ function prepareTasks (updateTask, results, callback) {
               Object.keys(target.metaFields).forEach(function (label) {
                 var mappedTo = target.metaFields[label]
                 var search = '@mapping.' + label + '@'
-                var replace = opEntity.get(['properties', mappedTo, 0, 'value'], 'N/A')
+                var replace = opEntity.get(['properties', mappedTo, 'values', 0, 'value'], 'N/A')
                 target.subs.mappedText = target.subs.mappedText.split(search).join(replace)
               })
             }
@@ -90,7 +90,7 @@ function prepareTasks (updateTask, results, callback) {
                 Object.keys(target.metaFields).forEach(function (label) {
                   var mappedTo = target.metaFields[label]
                   var search = '@mapping.' + label + '@'
-                  var replace = opEntity.get(['properties', mappedTo, 0, 'value'], mappedTo)
+                  var replace = opEntity.get(['properties', mappedTo, 'values', 0, 'value'], mappedTo)
                   target.exif[exifProperty] = target.exif[exifProperty].split(search).join(replace)
                 })
               })
