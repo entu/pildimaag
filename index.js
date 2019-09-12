@@ -27,6 +27,10 @@ function readConfiguration () {
       key: process.env.KEY
     }).then(function (opEntity) {
       debug('Got configurations.')
+      debug(opEntity.get(['properties'], 'props'))
+      debug(opEntity.get(['properties', 'configuration'], 'foo'))
+      debug(opEntity.get(['properties', 'configuration', 'value'], 'foovalue'))
+      debug(opEntity.get(['properties', 'configuration.value'], 'foo.value'))
       fulfill(
         opEntity.get(['properties', 'configuration', 'value'], []).map(function (conf) {
           debug('Try to parse conf')
