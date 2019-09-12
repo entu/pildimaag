@@ -218,8 +218,8 @@ function createMissing (results, callback) {
                   }
                   entu.uploadFile(fileOptions, results.entuOptions)
                     .then(function () {
-                      debug('fs.unlink(finalFilePath)' + finalFilePath)
-                      fs.unlink(finalFilePath)
+                      debug('fs.unlinkSync(finalFilePath)' + finalFilePath)
+                      fs.unlinkSync(finalFilePath)
                       return callback(null)
                     })
                     .catch(function (err) {
@@ -247,8 +247,8 @@ function createMissing (results, callback) {
             } else {
               var appendBgFilename = './temp/bg_' + source.id + '.' + ix + '.png'
               finalStream.on('finish', function () {
-                debug('fs.unlink(appendBgFilename)' + appendBgFilename)
-                fs.unlink(appendBgFilename)
+                debug('fs.unlinkSync(appendBgFilename)' + appendBgFilename)
+                fs.unlinkSync(appendBgFilename)
               })
               debug('subbing with ' + target.subs.mappedText)
               var passToAddSubs = new PassThrough()
@@ -331,8 +331,8 @@ function createMissing (results, callback) {
                 console.log(err)
                 return callback(err)
               }
-              debug('fs.unlink(originalFilepath)' + originalFilepath)
-              fs.unlink(originalFilepath)
+              debug('fs.unlinkSync(originalFilepath)' + originalFilepath)
+              fs.unlinkSync(originalFilepath)
               return callback(null)
             })
         })
