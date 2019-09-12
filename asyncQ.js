@@ -58,7 +58,7 @@ function prepareTasks (updateTask, results, callback) {
           var toCreate = {
             value: _toCreate.value,
             id: _toCreate.id,
-            file: _toCreate.value,
+            // file: _toCreate.value,
             targets: []
           }
           _task.targets.forEach(function (_template) { // For every template
@@ -164,7 +164,9 @@ function createMissing (results, callback) {
   // debug('Process sources', JSON.stringify(sources, null, 4))
   async.eachSeries(sources, function iterator (source, callback) {
     // debug('Process source', JSON.stringify(source, null, 4))
-    var entuSourceStream = entu.createReadStream(source.file, results.entuOptions)
+    var fileUrl = results.entuOptions.entuUrl + 'api2/file-' + source.id
+    debug('fileUrl:', fileUrl)
+    var entuSourceStream = entu.createReadStream(fileUrl, results.entuOptions)
       .on('error', function (err) {
         debug('Problem with source at ' + source.file, err)
         return callback(new ReferenceError('Problem with source at ' + source.file + '\n' + err))
