@@ -164,7 +164,7 @@ function createMissing (results, callback) {
   // debug('Process sources', JSON.stringify(sources, null, 4))
   async.eachSeries(sources, function iterator (source, callback) {
     // debug('Process source', JSON.stringify(source, null, 4))
-    var fileUrl = results.entuOptions.entuUrl + 'api2/file-' + source.id
+    var fileUrl = results.entuOptions.entuUrl + '/api2/file-' + source.id
     debug('fileUrl:', fileUrl)
     var entuSourceStream = entu.createReadStream(fileUrl, results.entuOptions)
       .on('error', function (err) {
