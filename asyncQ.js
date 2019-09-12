@@ -55,6 +55,7 @@ function prepareTasks (updateTask, results, callback) {
         // debug('2:', JSON.stringify(returnTask))
 
         opEntity.get(['properties', _task.source.property, 'values'], []).forEach(function (_toCreate) { // For every source file
+          debug('_toCreate:', _toCreate)
           var toCreate = {
             value: _toCreate.value,
             id: _toCreate.id,
