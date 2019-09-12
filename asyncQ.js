@@ -58,7 +58,7 @@ function prepareTasks (updateTask, results, callback) {
           var toCreate = {
             value: _toCreate.value,
             id: _toCreate.id,
-            file: _toCreate.value,
+            file: _toCreate.file,
             targets: []
           }
           _task.targets.forEach(function (_template) { // For every template
