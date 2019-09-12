@@ -30,11 +30,10 @@ function readConfiguration () {
       // debug(opEntity.get(['properties'], 'props'))
       // debug(opEntity.get(['properties', 'configuration'], 'foo'))
       // debug(opEntity.get(['properties', 'configuration', 'values'], 'foovalue'))
-      debug(opEntity.get(['properties', 'configuration.values'], 'foo.values'))
       fulfill(
         opEntity.get(['properties', 'configuration', 'values'], []).map(function (conf) {
           debug('Try to parse conf')
-          return jsonlint.parse(conf)
+          return jsonlint.parse(conf.db_value)
         })
       )
     }).catch(function (reason) {
