@@ -162,7 +162,7 @@ function createMissing (results, callback) {
   })
   // debug('Process sources', JSON.stringify(sources, null, 4))
   async.eachSeries(sources, function iterator (source, callback) {
-    // debug('Process source', JSON.stringify(source, null, 4))
+    debug('Process source', JSON.stringify(source, null, 4))
     var entuSourceStream = entu.createReadStream(source.file, results.entuOptions)
       .on('error', function (err) {
         debug('Problem with source at ' + source.file, err)
