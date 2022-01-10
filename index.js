@@ -61,15 +61,22 @@ init()
 function startJobs (jobs) {
   // debug('Jobs:', JSON.stringify(jobs, null, 4))
   async.eachLimit(jobs, 3, function iterator (job, callback) {
-    debug('Starting job "' + job.name + '"')
+    debug('Reading timestamp for "' + job.name + '"')
     var entuOptions = {
       entuUrl: job.entuUrl,
       user: job.apiUser,
       key: job.apiKey,
       relaxBetweenPages: job.relaxBetween.pagesSeconds
     }
-    runJob(job, entuOptions)
-      .then(callback)
+    entu.getEntity(job.apiUser, entuOptions)
+    .then(function (opEntity) {
+      debug('Got configurations.')
+      let ts_json = opEntity.get(['properties', 'json', 'values', 0, 'db_value'], '{"ts": 1628578800.5}')
+      entuOptions.timestamp = jsonlint.parse(ts_json)['ts']
+      debug('Starting job "' + job.name + '"')
+      runJob(job, entuOptions)
+        .then(callback)
+    })
   },
     function (err) {
       if (err) {
