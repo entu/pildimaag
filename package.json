@@ -9,8 +9,7 @@
     "exiftool": "0.0.3",
     "gm": "1.23.1",
     "jsonlint": "1.6.3",
-    "newrelic": "*",
-    "object-path": "0.11.4",
+    "object-path": "0.11.8",
     "request": "*",
     "rsvp": "3.2.1"
   },

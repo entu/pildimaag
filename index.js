@@ -1,5 +1,3 @@
-if (process.env.NEW_RELIC_LICENSE_KEY) { require('newrelic') }
-
 var async = require('async')
 var path = require('path')
 var debug = require('debug')('app:' + path.basename(__filename).replace('.js', ''))
