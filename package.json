@@ -5,7 +5,7 @@
   "dependencies": {
     "async": "3.2.3",
     "debug": "4.3.3",
-    "entulib": "2.0.7",
+    "entulib": "2.0.8",
     "exiftool": "0.0.3",
     "gm": "1.23.1",
     "object-path": "0.11.8"
