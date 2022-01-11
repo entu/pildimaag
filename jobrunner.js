@@ -49,7 +49,7 @@ function runJob (job, entuOptions) {
               jobIncrement = jobIncrement + 1
 
               ;(function (jobIncrement, job, item) {
-                if (!jobQueue.tasks.some(function (t) {
+                if (!jobQueue.tasks?.some(function (t) {
                   return t.data.job.name === job.name && t.data.item.id === item.id
                 })) {
                   debug('<X + #' + jobIncrement + '/' + (jobQueue.length() + 1) + '> Enqueue ' + job.name + ' ' + JSON.stringify(item) + ' ' + new Date(item.timestamp * 1e3))
