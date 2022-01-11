@@ -4,7 +4,6 @@ var debug = require('debug')('app:' + path.basename(__filename).replace('.js', '
 var runJob = require('./jobrunner')
 var Promise = require('bluebird')
 var entu = require('entulib')
-var jsonlint = require('jsonlint')
 var http = require('http')
 
 Promise.onPossiblyUnhandledRejection(function (error) { throw error })
@@ -28,7 +27,7 @@ function readConfiguration () {
       fulfill(
         opEntity.get(['properties', 'configuration', 'values'], []).map(function (conf) {
           debug('Try to parse conf')
-          return jsonlint.parse(conf.db_value)
+          return JSON.parse(conf.db_value)
         })
       )
     }).catch(function (reason) {
@@ -70,7 +69,7 @@ function startJobs (jobs) {
     .then(function (opEntity) {
       debug('Got configurations.')
       let ts_json = opEntity.get(['properties', 'json', 'values', 0, 'db_value'], '{"ts": 1628578800.5}')
-      entuOptions.timestamp = jsonlint.parse(ts_json)['ts']
+      entuOptions.timestamp = JSON.parse(ts_json)['ts']
       debug('Starting job "' + job.name + '"')
       runJob(job, entuOptions)
         .then(callback)

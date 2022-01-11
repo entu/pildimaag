@@ -8,10 +8,7 @@
     "entulib": "2.0.5",
     "exiftool": "0.0.3",
     "gm": "1.23.1",
-    "jsonlint": "1.6.3",
-    "object-path": "0.11.8",
-    "request": "*",
-    "rsvp": "3.2.1"
+    "object-path": "0.11.8"
   },
   "scripts": {
     "start": "index.js"
