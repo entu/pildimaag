@@ -382,14 +382,14 @@ var jobQueue = async.queue(function (updateTask, callback) {
     entuOptions: function (callback) {
       return callback(null, updateTask.entuOptions)
     },
-    prepareTasks: ['entuOptions', function (callback, results) {
+    prepareTasks: ['entuOptions', function (results, callback) {
       prepareTasks(updateTask, results, callback)
     }],
-    createMissing: ['prepareTasks', function (callback, results) {
+    createMissing: ['prepareTasks', function (results, callback) {
       // debug('results', JSON.stringify(results, null, 4))
       createMissing(results, callback)
     }],
-    removeExtra: ['prepareTasks', function (callback, results) {
+    removeExtra: ['prepareTasks', function (results, callback) {
       // debug('results', JSON.stringify(results, null, 4))
       removeExtra(results, callback)
     }]
@@ -414,6 +414,7 @@ var jobQueue = async.queue(function (updateTask, callback) {
     return callback(null)
   })
 }, 1)
+
 jobQueue.drain = function () {
   debug('=== JOBQUEUE: ALL ITEMS HAVE BEEN PROCESSED ===')
 }
@@ -421,6 +422,7 @@ jobQueue.drain = function () {
 var uploadQueue = async.queue(function (task, callback) {
   return callback(null)
 })
+
 uploadQueue.drain = function () {
   debug('uploadQueue: all items have been processed')
 }
