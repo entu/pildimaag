@@ -1,4 +1,4 @@
-FROM node:16-slim
+FROM node:16-bullseye-slim
 
 RUN apt-get update && apt-get install -y --no-install-recommends apt-utils
 RUN apt-get install -y graphicsmagick git
