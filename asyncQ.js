@@ -149,7 +149,7 @@ function prepareTasks (updateTask, results, callback) {
 }
 
 function createMissing (results, callback) {
-  debug(JSON.stringify(results, null, 4))
+  // debug('create missing', JSON.stringify(results, null, 4))
   // debug(JSON.stringify(results.entuOptions, null, 4))
 
   if (op.get(results, ['prepareTasks', 'tasks'], []).reduce(function (sum, a) {
