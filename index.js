@@ -67,7 +67,7 @@ function startJobs (jobs) {
     }
     entu.getEntity(job.apiUser, entuOptions)
     .then(function (opEntity) {
-      debug('Got configurations.', opEntity.get(['properties', 'json', 'values', 0, 'db_value']))
+      debug('Got configurations.', opEntity.get(['properties']))
       let ts_json = opEntity.get(['properties', 'json', 'values', 0, 'db_value'], '{"ts": 1628578800.5}')
       entuOptions.timestamp = JSON.parse(ts_json)['ts']
       debug('Starting job "' + job.name + '"')
