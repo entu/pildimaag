@@ -10,4 +10,4 @@ RUN mkdir -p /usr/src/pildimaag/temp
 
 RUN cd /usr/src/pildimaag && npm --production install
 
-CMD ["node", "/usr/src/pildimaag/index.js"]
+CMD npm run start
